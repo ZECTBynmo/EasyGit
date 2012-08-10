@@ -8,6 +8,7 @@ var zip = new AdmZip("./my_file.zip");
 
 // To be determined later
 var baseDir;
+var fileData;
 
 // This will hold the function that we're going to call next. It
 // makes our very asynchronous code cleaner.
@@ -16,7 +17,8 @@ var nextStep = function() {};
 
 httpServer.on( "/updateDirectory", function( data ) {
 	baseDir = data.baseDir;
-	
+	fileData = data.fileZip;
+    
 	// Make sure it exists on this computer
 	if( !dirExistsSync(baseDir) ) {
 		console.log( "Error: The directory " + baseDir + " does not exist" );
@@ -41,6 +43,16 @@ function callNextStep( error ) {
 		console.log( error );
 } // end callNextStep()
 
+
+function writeZipToDisk( callback ) {
+    var stream = fs.createWriteStream("tempArchive.zip");
+    
+    stream.once('open', function(fd) {
+        stream.write( fileData );
+    });
+
+    callback();
+} // end writeZipToDisk()
 
 function gitCheckout() {
 	console.log( "Checking out back to HEAD" );
@@ -71,7 +83,7 @@ function deleteExistingFiles() {
 	nextStep = copyIncomingFiles;	
 	
 	// REMOVE THE DIRECTORY RECURSIVELY (scary, I know)
-	wrench.rmdirRecursive( baseDir, callNextStep );
+//	wrench.rmdirRecursive( baseDir, callNextStep );
 } // end deleteExistingFiles()
 
 
@@ -79,17 +91,19 @@ function copyIncomingFiles() {
 	console.log( "Unzipping and copying incoming files into place" );
 	nextStep = gitPush;
 	
-	zip = new AdmZip( 
+	zip = new AdmZip( "tempArchive.zip" );
 	
 	// Extract all files 
 	zip.extractAllTo( baseDir, true );
+    
+    callNextStep();
 } // end copyIncomingFiles()
 
 
 function gitPush() {	
 	console.log( "Pushing changes to git" );
 	
-	var child = exec('git push origin master', function (error, stdout, stderr) {
+	exec('git push origin master', function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
 		if (error !== null) {
