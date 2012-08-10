@@ -138,10 +138,9 @@ function Server( port, host ) {
 				};
 
 				var path = url.parse(request.url).pathname;
-				var data = qs.parse(url.parse(request.url).query);
 				
 				// Fire the event attached to this path
-				this.eventHandler.fireEvent( path, data );
+				this.eventHandler.fireEvent( path, fullBody );
 
 				// Call our request handler
 				handler( request, response, fullBody );

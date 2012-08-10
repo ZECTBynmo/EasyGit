@@ -3,6 +3,9 @@ var httpServer = require("./HTTPServer").createNewServer();
 var exec = require('child_process').exec
 var wrench = require("wrench");
 
+var AdmZip = require('adm-zip');
+var zip = new AdmZip("./my_file.zip");
+
 // To be determined later
 var baseDir;
 
@@ -15,7 +18,10 @@ httpServer.on( "/updateDirectory", function( data ) {
 	baseDir = data.baseDir;
 	
 	// Make sure it exists on this computer
-	if( !dirExistsSync(baseDir) ) onFailure();
+	if( !dirExistsSync(baseDir) ) {
+		console.log( "Error: The directory " + baseDir + " does not exist" );
+		return;
+	}
 	
 	startProcess();
 }); // end on updateDirectory
@@ -37,6 +43,7 @@ function callNextStep( error ) {
 
 
 function gitCheckout() {
+	console.log( "Checking out back to HEAD" );
 	nextStep = gitPullRebase;
 	
 	var child = exec('git checkout -- .', function (error, stdout, stderr) {
@@ -48,6 +55,7 @@ function gitCheckout() {
 
 
 function gitPullRebase() {
+	console.log( "Pulling from remote" );
 	nextStep = deleteExistingFiles;	
 	
 	var child = exec('git pull --rebase', function (error, stdout, stderr) {
@@ -59,6 +67,7 @@ function gitPullRebase() {
 
 
 function deleteExistingFiles() {
+	console.log( "Deleting all files within " + baseDir );
 	nextStep = copyIncomingFiles;	
 	
 	// REMOVE THE DIRECTORY RECURSIVELY (scary, I know)
@@ -67,13 +76,19 @@ function deleteExistingFiles() {
 
 
 function copyIncomingFiles() {
+	console.log( "Unzipping and copying incoming files into place" );
 	nextStep = gitPush;
 	
-	ar.openFile( path.join(root, "test.tar.gz"), callNextStep );
+	zip = new AdmZip( 
+	
+	// Extract all files 
+	zip.extractAllTo( baseDir, true );
 } // end copyIncomingFiles()
 
 
 function gitPush() {	
+	console.log( "Pushing changes to git" );
+	
 	var child = exec('git push origin master', function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
