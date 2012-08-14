@@ -1,10 +1,12 @@
+var port = typeof( process.env.PORT ) == "undefined" ? 2000 : process.env.PORT;
+
 var fs = require("fs");
-var httpServer = require("./HTTPServer").createNewServer();
+var httpServer = require("./HTTPServer").createNewServer( port, null );
 var exec = require('child_process').exec
 var wrench = require("wrench");
 
 var AdmZip = require('adm-zip');
-var zip = new AdmZip("./my_file.zip");
+var zip; 
 
 // To be determined later
 var baseDir;
@@ -54,6 +56,7 @@ function writeZipToDisk( callback ) {
     callback();
 } // end writeZipToDisk()
 
+
 function gitCheckout() {
 	console.log( "Checking out back to HEAD" );
 	nextStep = gitPullRebase;
@@ -91,7 +94,11 @@ function copyIncomingFiles() {
 	console.log( "Unzipping and copying incoming files into place" );
 	nextStep = gitPush;
 	
-	zip = new AdmZip( "tempArchive.zip" );
+	try {
+		zip = new AdmZip("tempArchive.zip");
+	} catch( err ) {
+		console.log( "Couldn't open zipped directory: " + err );
+	}
 	
 	// Extract all files 
 	zip.extractAllTo( baseDir, true );

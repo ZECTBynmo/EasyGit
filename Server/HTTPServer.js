@@ -75,7 +75,7 @@ var createServer = require("http").createServer,
 	mime = require("./Common/MimeLookup"),
 	eventHandlerImpl = require("./Common/EventHandler");
 
-var DEBUG_LOG = true;
+var DEBUG_LOG = false;
 
 var log = function( text ) {	// A log function we can turn off :/
 	if( DEBUG_LOG ) { console.log( text ); }
