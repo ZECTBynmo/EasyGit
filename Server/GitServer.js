@@ -1,4 +1,7 @@
-var port = typeof( process.env.PORT ) == "undefined" ? 2000 : process.env.PORT;
+var port = typeof( process.env.PORT ) == "undefined" ? 2323 : process.env.PORT;
+
+var io  = require('socket.io');
+io.listen(port);
 
 var fs = require("fs");
 var httpServer = require("./HTTPServer").createNewServer( port, null );

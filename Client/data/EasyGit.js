@@ -2,16 +2,19 @@ var fs = require("fs");
 var zip = require("node-native-zip");
 var folder = require( "./folder" );
 
-var io  = require('socket.io').listen(5001),
-    dl  = require('delivery');
+var io_client = require( 'socket.io-client' );
+//var io  = require('socket.io').listen(5001);
+var dl  = require('delivery');
 	
 var socket;
 var delivery
 
-io.sockets.on('connection', function(socket){
+/*
+io_client.sockets.on('connection', function(socket){
 	console.log( "Sockets connected" );
 	delivery = dl.listen(socket);
 });
+*/
 	
 var app = module.exports = require('appjs'),
     github = new (require('github'))({ version: '3.0.0' }),
@@ -45,8 +48,7 @@ window.on('ready', function(){
 	  
     $('#heading-section').show();
 	
-	console.log( io );
-	socket = io.connect('http://0.0.0.0:5001');
+	socket = io_client.connect('http://0.0.0.0:5001');
 	
 	socket.on('error', function (e) {
 		console.log('System', e ? e : 'A unknown error occurred');
