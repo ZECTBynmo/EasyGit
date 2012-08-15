@@ -2,6 +2,17 @@ var fs = require("fs");
 var zip = require("node-native-zip");
 var folder = require( "./folder" );
 
+var io  = require('socket.io').listen(5001),
+    dl  = require('delivery');
+	
+var socket;
+var delivery
+
+io.sockets.on('connection', function(socket){
+	console.log( "Sockets connected" );
+	delivery = dl.listen(socket);
+});
+	
 var app = module.exports = require('appjs'),
     github = new (require('github'))({ version: '3.0.0' }),
     KEY_F12 = process.platform === 'darwin' ? 63247 : 123;
@@ -33,6 +44,13 @@ window.on('ready', function(){
 		$buttons = $('input, button');
 	  
     $('#heading-section').show();
+	
+	console.log( io );
+	socket = io.connect('http://0.0.0.0:5001');
+	
+	socket.on('error', function (e) {
+		console.log('System', e ? e : 'A unknown error occurred');
+	});
 
 	$(window).on('keydown', function(e){
 		if (e.keyCode === KEY_F12) {
@@ -63,8 +81,13 @@ window.on('ready', function(){
 		
 		// Zip the directory
 		zipDirectory( path, function() {
-			log("zipping");
+			log( "Zip file created at " + path );
+			$label.text( "Zip file created at " + path );
+			
+			uploadFile( path + ".zip" );
 		});
+		
+		
 	});
 
 	function verifyDirectory( path ) {
@@ -107,6 +130,20 @@ window.on('ready', function(){
 			});
 		});   
 	} // end zipDirectory()
+	
+	
+	function uploadFile( filePath ) {
+		
+		delivery.send({
+			name: getFolderName( filePath ),
+			path : filePath
+		});
+
+		delivery.on('send.success', function(file){ 
+			console.log('File successfully sent to client!'); 
+		});
+	}
+	
   
   function loggedIn(result){
     $label.text('Logged in!');
@@ -145,3 +182,9 @@ function dirExistsSync( d ) {
 	
 	return true;
 } // end dirExistsSync()
+
+function getFolderName( fullPath ) {
+	var folderStart = fullPath.lastIndexOf( "/" ) + 1;
+	
+	return fullPath.substring( folderStart );
+}
