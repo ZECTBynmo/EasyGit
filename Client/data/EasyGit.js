@@ -1,8 +1,14 @@
+var fs = require("fs");
+var zip = require("node-native-zip");
+var folder = require( "./folder" );
+
 var app = module.exports = require('appjs'),
     github = new (require('github'))({ version: '3.0.0' }),
     KEY_F12 = process.platform === 'darwin' ? 63247 : 123;
 
 app.serveFilesFrom(__dirname + '/assets');
+
+function log(text) { if( true ) console.log(text); }
 
 var window = app.createWindow({
   width: 418,
@@ -18,48 +24,90 @@ window.on('create', function(){
 });
 
 window.on('ready', function(){
-  var $ = window.$,
-      $username = $('input[name=username]'),
-      $password = $('input[name=password]'),
-      $info = $('#info-login'),
-      $label = $info.find('span'),
-      $buttons = $('input, button');
+	log( "Document ready" );
+	
+	var $ = window.$,
+		$folderPath = $('input[name=path]'),
+		$info = $('#info-login'),
+		$label = $info.find('span'),
+		$buttons = $('input, button');
 	  
-	$label.text('Logged in!');
     $('#heading-section').show();
 
-$(window).on('keydown', function(e){
-	if (e.keyCode === KEY_F12) {
-		window.frame.openDevTools();
-	}
-});
+	$(window).on('keydown', function(e){
+		if (e.keyCode === KEY_F12) {
+			window.frame.openDevTools();
+		}
+	});
 
-  $username.focus();
+	$folderPath.focus();
 
-  $('#login-form').submit(function(e){
-    e.preventDefault();
+	$('#path-form').submit(function(e){
+		log( "Button Pressed" );
+		e.preventDefault();
+		
+		$buttons.attr('disabled', true);
+		$info.removeClass('error').addClass('success');
+		
+		var path = $folderPath.val();
+		
+		// Verify the directory we're going to upload
+		if( verifyDirectory(path) ) {		
+			$label.text('Directory verified');
+		} else {
+			$info.removeClass('success').addClass('error');
+			$label.text( 'Error Invalid directory: ' + path );
+			$buttons.attr( 'disabled', false );
+			return;
+		}
+		
+		// Zip the directory
+		zipDirectory( path, function() {
+			log("zipping");
+		});
+	});
 
-    $info.removeClass('error').addClass('success');
-    $label.text('Logging in...');
-    $buttons.attr('disabled', true);
+	function verifyDirectory( path ) {
+		log( "verifying " + path );
+		$label.text( 'Verifying directory...' );
+		
+		if( path.length > 6 && dirExistsSync(path) ) {
+			log( "valid directory" );
+			return true;
+		} else {
+			log( "invalid directory" );
+			return false;
+		}
+	} // end verifyDirectory()
+	
+	
+	function zipDirectory( dir, callback ) {
+		var archive = new zip();
 
-    github.authenticate({
-      type: 'basic',
-      username: $username.val(),
-      password: $password.val()
-    });
+		// map all files in the approot thru this function
+		folder.mapAllFiles(dir, function (path, stats, callback) {
+			// prepare for the .addFiles function
+			callback({ 
+				name: path.replace(dir, "").substr(1), 
+				path: path 
+			});
+		}, function (err, data) {
+			if (err) return callback(err);
 
-    github.user.get({}, function(err, result) {
-      if (err) {
-        $info.removeClass('success').addClass('error');
-        $label.text('Login Failed. Try Again.');
-        $buttons.removeAttr('disabled');
-      } else {
-        loggedIn(result);
-      }
-    });
-  });
+			// add the files to the zip
+			archive.addFiles(data, function (err) {
+				if (err) return callback(err);
 
+				// write the zip file
+				fs.writeFile(dir + ".zip", archive.toBuffer(), function (err) {
+					if (err) return callback(err);
+
+					callback(null, dir + ".zip");
+				});                    
+			});
+		});   
+	} // end zipDirectory()
+  
   function loggedIn(result){
     $label.text('Logged in!');
     $('#user-avatar').append('<img src="'+result.avatar_url+'" width="64" height="64">');
@@ -89,3 +137,11 @@ $(window).on('keydown', function(e){
     }
   }
 });
+
+
+function dirExistsSync( d ) {
+	try { fs.statSync( d ).isDirectory() }
+	catch( er ) { log(er); return false }
+	
+	return true;
+} // end dirExistsSync()

@@ -7,6 +7,11 @@ label
 h2
 { margin-bottom: 10px; }
 
+#submit-button {
+	width: 280;
+	
+}
+
 #heading-section
 { margin: 15% auto; width: 320px; height: 265px; border-radius: 5px;
   border: 1px solid rgba(0,0,0,0.6); background-color: rgba(0,0,0,0.4); }
