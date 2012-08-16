@@ -2,7 +2,7 @@ var fs = require("fs");
 var zip = require("node-native-zip");
 var folder = require( "./folder" );
 
-var io_client = require( 'socket.io-client' );
+var io = require( 'socket.io-client' );
 //var io  = require('socket.io').listen(5001);
 var dl  = require('delivery');
 	
@@ -48,7 +48,7 @@ window.on('ready', function(){
 	$label.text( 'Not connected to server' );
 	$buttons.attr('disabled', true);
 	
-	socket = io_client.connect('http://localhost:5001');
+	socket = io.connect('http://localhost:5001');
 	
 	socket.on( 'error', function (e) {
 		console.log("error");
@@ -58,27 +58,40 @@ window.on('ready', function(){
 		$label.text( "Connection error: " + e );
 	});
 	
+	socket.on("delivery.connect", function() {
+		console.log( "Got delivery connect" );
+	});
+	
 	socket.on( 'connect', function() {
 		log( "Sockets connected" );
 			
 		delivery = dl.listen( socket );
+		delivery.connect();
 		
+		/*
 		delivery.on('delivery.connect',function(delivery) {
 			log( "Delivery connected" );
 		});
+		*/
 		
+		$info.removeClass('success').addClass('error');
+		$label.text( 'Connected, waiting for transfer setup...' );
+		
+		/*
 		$label.text( 'Connected and ready!' );
 		$info.removeClass('error').addClass('success');
 		$buttons.attr( 'disabled', false );
-
-		/*
+		*/
+		
+		
 		delivery.on('delivery.connect',function(delivery) {
+			log( "Delivery Ready!" );
 			readyToTransfer = true;
 			$label.text( 'Connected and ready!' );
 			$info.removeClass('error').addClass('success');
 			$buttons.attr( 'disabled', false );
 		});
-		*/
+		
 	});
 
 	$(window).on( 'keydown', function(e){
@@ -165,11 +178,15 @@ window.on('ready', function(){
 		log( "Uploading file to server: " + filePath );
 		$label.text('Uploading zipped directory');
 		
-		var fileName = getFolderName( filePath ) + ".zip";
+		var fileName = getFolderName( filePath );
 		
 		delivery.send({
 			name: fileName,
 			path: filePath
+		});
+		
+		delivery.on('send.error',function(error){
+			log( "send error: " + error );
 		});
 		
 		delivery.on('send.start',function(filePackage){
@@ -190,7 +207,10 @@ function dirExistsSync( d ) {
 } // end dirExistsSync()
 
 function getFolderName( fullPath ) {
-	var folderStart = fullPath.lastIndexOf( "/" ) + 1;
-	
-	return fullPath.substring( folderStart );
+	var lastBackSlash = fullPath.lastIndexOf( "\\" ),
+		lastForwardSlash = fullPath.lastIndexOf( "/" );
+		
+	var folderStart = lastBackSlash > lastForwardSlash ? lastBackSlash : lastForwardSlash;
+
+	return fullPath.substring( folderStart + 1 );
 }

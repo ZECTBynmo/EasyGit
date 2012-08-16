@@ -1,29 +1,6 @@
 var port = typeof( process.env.PORT ) == "undefined" ? 5000 : process.env.PORT;
 
-console.log( "Opening socket on port " + port );
-var io  = require( 'socket.io' ).listen(port+1);
-
 var fs = require("fs");
-var dl = require("delivery");
-
-io.sockets.on('connection', function(socket){
-	console.log( "Socket connection" );
-  
-	var delivery = dl.listen(socket);
-	delivery.on('receive.success',function(file){
-	
-		fs.writeFile(file.name,file.buffer, function(err){
-		  if(err){
-			console.log('File could not be saved.');
-		  }else{
-			console.log('File saved.');
-		  };
-		});
-	});
-});
-
-var fs = require("fs");
-var httpServer = require("./HTTPServer").createNewServer( port, null );
 var exec = require('child_process').exec
 var wrench = require("wrench");
 
@@ -38,19 +15,27 @@ var fileData;
 // makes our very asynchronous code cleaner.
 var nextStep = function() {};
 
+console.log( "Opening socket on port " + port );
+var io  = require( 'socket.io' ).listen(port+1);
+var dl = require("delivery");
 
-httpServer.on( "/updateDirectory", function( data ) {
-	baseDir = data.baseDir;
-	fileData = data.fileZip;
-    
-	// Make sure it exists on this computer
-	if( !dirExistsSync(baseDir) ) {
-		console.log( "Error: The directory " + baseDir + " does not exist" );
-		return;
-	}
+io.sockets.on('connection', function(socket){
+	console.log( "Socket connection" );
+  
+	var delivery = dl.listen(socket);
+	delivery.on('receive.success',function(file){
+		var fileNameWithoutPath = getFileNameFromPath( file.name );
 	
-	startProcess();
-}); // end on updateDirectory
+		fs.mkdir( "temp" );
+		fs.writeFile( "temp/" + fileNameWithoutPath ,file.buffer, function(err){
+			if(err){
+				console.log( 'File could not be saved: ' + err );
+			}else{
+				console.log( 'File ' + file.name + " saved" );
+			};
+		});
+	});	
+});
 
 
 function startProcess() {
@@ -66,17 +51,6 @@ function callNextStep( error ) {
 	else
 		console.log( error );
 } // end callNextStep()
-
-
-function writeZipToDisk( callback ) {
-    var stream = fs.createWriteStream("tempArchive.zip");
-    
-    stream.once('open', function(fd) {
-        stream.write( fileData );
-    });
-
-    callback();
-} // end writeZipToDisk()
 
 
 function gitCheckout() {
@@ -147,3 +121,12 @@ function dirExistsSync( d ) {
 	try { fs.statSync( d ).isDirectory() }
 	catch( er ) { return false }
 } // end dirExistsSync()
+
+function getFileNameFromPath( fullPath ) {
+	var lastBackSlash = fullPath.lastIndexOf( "\\" ),
+		lastForwardSlash = fullPath.lastIndexOf( "/" );
+		
+	var folderStart = lastBackSlash > lastForwardSlash ? lastBackSlash : lastForwardSlash;
+
+	return fullPath.substring( folderStart + 1 );
+}
