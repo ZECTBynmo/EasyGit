@@ -125,6 +125,7 @@ window.on('ready', function(){
 		
 		$label.text( 'Error: ' + data.error );
 		$info.removeClass('success').addClass('error');
+		$buttons.attr( 'disabled', false );
 	});
 	
 	socket.on( 'connect', function() {
