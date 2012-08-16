@@ -28,6 +28,8 @@ io.sockets.on('connection', function(socket){
 	console.log( "Socket connection" );
 	
 	socket.on( "requestTransfer", function( data ) {
+		console.log( "transfer requested" );
+		console.log( data );
 		if( isLocked ) {
 			emitError( "Transfer locked: server busy" );
 		} else {
@@ -35,9 +37,11 @@ io.sockets.on('connection', function(socket){
 			baseDir = data.baseDir;
 			commitMessage = data.commitMessage;
 			
+			io.sockets.socket( currentUser ).emit( "transferAccepted" );
+			
 			isLocked = true;			
 		}
-	}
+	});
   
 	var delivery = dl.listen(socket);
 	delivery.on('receive.success',function(file){
