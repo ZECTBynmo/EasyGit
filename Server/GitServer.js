@@ -12,6 +12,10 @@ var baseDir;
 var fileName; 
 var fileData;
 
+var isLocked = false;
+var currentUser = null;
+var commitMessage = null;
+
 // This will hold the function that we're going to call next. It
 // makes our very asynchronous code cleaner.
 var nextStep = function() {};
@@ -22,13 +26,24 @@ var dl = require("delivery");
 
 io.sockets.on('connection', function(socket){
 	console.log( "Socket connection" );
+	
+	socket.on( "requestTransfer", function( data ) {
+		if( isLocked ) {
+			emitError( "Transfer locked: server busy" );
+		} else {
+			currentUser = socket.id;
+			baseDir = data.baseDir;
+			commitMessage = data.commitMessage;
+			
+			isLocked = true;			
+		}
+	}
   
 	var delivery = dl.listen(socket);
 	delivery.on('receive.success',function(file){
 		var fileNameWithoutPath = getFileNameFromPath( file.name );
 		
 		fileName = fileNameWithoutPath;
-		baseDir = getBaseDirFromFilePath( file.name ) + "temp/";
 		
 		// Create our temp directory if it doesn't exist already
 		if( !dirExistsSync( "temp" ) ) {
@@ -54,6 +69,14 @@ function startProcess() {
 } // end startProcess()
 
 
+function processDone() {
+	io.sockets.socket(currentUser).emit( "processDone" );
+	isLocked = false;
+	currentUser = null;
+	commitMessage = null;
+}
+
+
 function callNextStep( error ) {
 	if( typeof(error) == "undefined" || error == null ) 
 		nextStep();
@@ -66,7 +89,7 @@ function gitCheckout() {
 	console.log( "Checking out back to HEAD" );
 	nextStep = gitPullRebase;
 	
-	var child = exec('git checkout -- .', function (error, stdout, stderr) {
+	var child = exec('git checkoutt -- .', function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
 		callNextStep( error );
@@ -115,7 +138,8 @@ function copyIncomingFiles() {
 function gitCommit() {
 	console.log( "Committing files to git" );
 	
-	var commitMessage = "Files changed using EasyGit";
+	if( typeof(commitMessage) == "undefined" ) 
+		commitMessage = "Files changed using EasyGit";
 	
 	exec('git commit -m "' + commitMessage + '" -- ' + baseDir, function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
@@ -141,7 +165,20 @@ function gitPush() {
 			console.log( "Success!" );
 		}
 	});
+	
+	processDone();
 } // end gitPush()
+
+
+function emitError( error ) {
+	io.sockets.socket( currentUser ).emit( "transferError", {error: error} );
+	console.log( "Error: " + error );
+	
+	isLocked = false;
+	currentUser = null;
+	commitMessage = null;
+}
+
 
 function dirExistsSync( d ) {
 	try { fs.statSync( d ).isDirectory() }

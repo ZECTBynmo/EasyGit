@@ -56,6 +56,7 @@ window.on('ready', function(){
 	
 	var $ = window.$,
 		$folderPath = $('input[name=path]'),
+		$commitComment = $('input[name=comment]'),
 		$info = $('#info-login'),
 		$label = $info.find('span'),
 		$buttons = $('input, button');
@@ -82,49 +83,49 @@ window.on('ready', function(){
 		
 		$label.text( 'Clearing server state (git checkout -- .)' );
 		$info.removeClass('error').addClass('success');
-	}
+	});
 	
 	socket.on( "gitPull", function() {
 		log( "got gitPull" );
 		
 		$label.text( 'Updating server to current repo state (git pull --rebase)' );
 		$info.removeClass('error').addClass('success');
-	}
+	});
 	
 	socket.on( "deletingDir", function() {
 		log( "got deletingDir" );
 		
 		$label.text( 'Deleting all files in the directory on the server' );
 		$info.removeClass('error').addClass('success');
-	}
+	});
 	
 	socket.on( "copyingFiles", function() {
 		log( "got copyingFiles" );
 		
 		$label.text( 'Copying your files into place' );
 		$info.removeClass('error').addClass('success');
-	}
+	});
 	
 	socket.on( "gitCommit", function() {
 		log( "got gitCommit" );
 		
 		$label.text( 'Committing changed files (git commit)' );
 		$info.removeClass('error').addClass('success');
-	}
+	});
 	
 	socket.on( "gitPush", function() {
 		log( "got gitPush" );
 		
 		$label.text( 'Pushing changes to server (git push origin master)' );
 		$info.removeClass('error').addClass('success');
-	}
+	});
 	
-	socket.on( "mergeConflict", function() {
-		log( "got mergeConflict" );
+	socket.on( "transferError", function( data ) {
+		log( "got transferError" );
 		
-		$label.text( 'Merge Conflict! Process aborted. Find a developer :/' );
+		$label.text( 'Error: ' + data.error );
 		$info.removeClass('success').addClass('error');
-	}
+	});
 	
 	socket.on( 'connect', function() {
 		log( "Sockets connected" );
@@ -174,6 +175,7 @@ window.on('ready', function(){
 		$info.removeClass('error').addClass('success');
 		
 		var path = $folderPath.val();
+		var commitComment = $commitComment.val();
 		
 		// Verify the directory we're going to upload
 		if( verifyDirectory(path) ) {		
@@ -190,7 +192,7 @@ window.on('ready', function(){
 			log( "Zip file created at " + path );
 			$label.text( "Zip file created at " + path );
 			
-			uploadFile( path + ".zip" );
+			uploadFile( path + ".zip", commitComment );
 		});
 		
 		
@@ -228,40 +230,51 @@ window.on('ready', function(){
 				if (err) return callback(err);
 
 				// write the zip file
-				fs.writeFile(dir + ".zip", archive.toBuffer(), function (err) {
+				fs.writeFile(dir + ".zip", archive.toBuffer(), function ( err ) {
 					if (err) return callback(err);
 
 					callback(null, dir + ".zip");
-				});                    
+				});
 			});
 		});   
 	} // end zipDirectory()
 	
 	
-	function uploadFile( filePath ) {
+	function uploadFile( filePath, commitMessage ) {
 		log( "Uploading file to server: " + filePath );
 		
 		var fileName = getFolderName( filePath );
 		
-		delivery.send({
-			name: fileName,
-			path: filePath
-		});
+		var transferTraits = {
+			baseDir: GIT_DIRECTORY_TO_MODIFY,
+			commitMessage: commitMessage
+		};
 		
-		delivery.on( 'send.error', function( error ) {
-			$info.removeClass('success').addClass('error');
-			$label.text( 'Error uploading directory: ' + error );
-			log( "send error: " + error );
-		});
+		// Tell the server we're about to transfer
+		socket.emit( "requestTransfer", transferTraits );
 		
-		delivery.on( 'send.start', function( filePackage ) {
-			$label.text('Uploading zipped directory');
-			log(filePackage.name + " is being sent to the client.");
-		});
+		socket.on( "transferAccepted", function() {
+		
+			delivery.send({
+				name: fileName,
+				path: filePath
+			});
+			
+			delivery.on( 'send.error', function( error ) {
+				$info.removeClass('success').addClass('error');
+				$label.text( 'Error uploading directory: ' + error );
+				log( "send error: " + error );
+			});
+			
+			delivery.on( 'send.start', function( filePackage ) {
+				$label.text('Uploading zipped directory');
+				log(filePackage.name + " is being sent to the client.");
+			});
 
-		delivery.on('send.success', function(file){ 
-			log('File successfully sent to client!'); 
-			$label.text('Directory Uploaded!');
+			delivery.on('send.success', function(file){ 
+				log('File successfully sent to client!'); 
+				$label.text('Directory Uploaded!');
+			});
 		});
 	} // end uploadFile()
 });
