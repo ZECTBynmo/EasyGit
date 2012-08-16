@@ -9,6 +9,7 @@ var zip;
 
 // To be determined later
 var baseDir;
+var fileName; 
 var fileData;
 
 // This will hold the function that we're going to call next. It
@@ -25,13 +26,21 @@ io.sockets.on('connection', function(socket){
 	var delivery = dl.listen(socket);
 	delivery.on('receive.success',function(file){
 		var fileNameWithoutPath = getFileNameFromPath( file.name );
-	
-		fs.mkdir( "temp" );
+		
+		fileName = fileNameWithoutPath;
+		baseDir = getBaseDirFromFilePath( file.name ) + "temp/";
+		
+		// Create our temp directory if it doesn't exist already
+		if( !dirExistsSync( "temp" ) ) {
+			fs.mkdir( "temp" );
+		}
+		
 		fs.writeFile( "temp/" + fileNameWithoutPath ,file.buffer, function(err){
-			if(err){
+			if( err ) {
 				console.log( 'File could not be saved: ' + err );
-			}else{
+			} else {
 				console.log( 'File ' + file.name + " saved" );
+				startProcess();
 			};
 		});
 	});	
@@ -103,6 +112,23 @@ function copyIncomingFiles() {
 } // end copyIncomingFiles()
 
 
+function gitCommit() {
+	console.log( "Committing files to git" );
+	
+	var commitMessage = "Files changed using EasyGit";
+	
+	exec('git commit -m "' + commitMessage + '" -- ' + baseDir, function (error, stdout, stderr) {
+		console.log('stdout: ' + stdout);
+		console.log('stderr: ' + stderr);
+		if (error !== null) {
+			console.log(error);
+		} else {
+			console.log( "Success!" );
+		}
+	});
+}
+
+
 function gitPush() {	
 	console.log( "Pushing changes to git" );
 	
@@ -129,4 +155,13 @@ function getFileNameFromPath( fullPath ) {
 	var folderStart = lastBackSlash > lastForwardSlash ? lastBackSlash : lastForwardSlash;
 
 	return fullPath.substring( folderStart + 1 );
+}
+
+function getBaseDirFromFilePath( filePath ) {
+	var lastBackSlash = fullPath.lastIndexOf( "\\" ),
+		lastForwardSlash = fullPath.lastIndexOf( "/" );
+		
+	var lastfolderStart = lastBackSlash > lastForwardSlash ? lastBackSlash : lastForwardSlash;
+
+	return fullPath.substring( 0, lastfolderStart + 1 );
 }
