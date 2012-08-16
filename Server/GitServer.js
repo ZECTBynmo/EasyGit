@@ -1,7 +1,26 @@
-var port = typeof( process.env.PORT ) == "undefined" ? 2323 : process.env.PORT;
+var port = typeof( process.env.PORT ) == "undefined" ? 5000 : process.env.PORT;
 
-var io  = require('socket.io');
-io.listen(port);
+console.log( "Opening socket on port " + port );
+var io  = require( 'socket.io' ).listen(port+1);
+
+var fs = require("fs");
+var dl = require("delivery");
+
+io.sockets.on('connection', function(socket){
+	console.log( "Socket connection" );
+  
+	var delivery = dl.listen(socket);
+	delivery.on('receive.success',function(file){
+	
+		fs.writeFile(file.name,file.buffer, function(err){
+		  if(err){
+			console.log('File could not be saved.');
+		  }else{
+			console.log('File saved.');
+		  };
+		});
+	});
+});
 
 var fs = require("fs");
 var httpServer = require("./HTTPServer").createNewServer( port, null );

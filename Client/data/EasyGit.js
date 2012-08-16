@@ -8,13 +8,8 @@ var dl  = require('delivery');
 	
 var socket;
 var delivery
-
-/*
-io_client.sockets.on('connection', function(socket){
-	console.log( "Sockets connected" );
-	delivery = dl.listen(socket);
-});
-*/
+	
+var readyToTransfer = false;
 	
 var app = module.exports = require('appjs'),
     github = new (require('github'))({ version: '3.0.0' }),
@@ -48,13 +43,45 @@ window.on('ready', function(){
 	  
     $('#heading-section').show();
 	
-	socket = io_client.connect('http://0.0.0.0:5001');
+	// We're not connected to the server yet, so assume we can't connect
+	$info.removeClass('success').addClass('error');
+	$label.text( 'Not connected to server' );
+	$buttons.attr('disabled', true);
 	
-	socket.on('error', function (e) {
+	socket = io_client.connect('http://localhost:5001');
+	
+	socket.on( 'error', function (e) {
+		console.log("error");
 		console.log('System', e ? e : 'A unknown error occurred');
+		$buttons.attr('disabled', true);
+		$info.removeClass('success').addClass('error');
+		$label.text( "Connection error: " + e );
+	});
+	
+	socket.on( 'connect', function() {
+		log( "Sockets connected" );
+			
+		delivery = dl.listen( socket );
+		
+		delivery.on('delivery.connect',function(delivery) {
+			log( "Delivery connected" );
+		});
+		
+		$label.text( 'Connected and ready!' );
+		$info.removeClass('error').addClass('success');
+		$buttons.attr( 'disabled', false );
+
+		/*
+		delivery.on('delivery.connect',function(delivery) {
+			readyToTransfer = true;
+			$label.text( 'Connected and ready!' );
+			$info.removeClass('error').addClass('success');
+			$buttons.attr( 'disabled', false );
+		});
+		*/
 	});
 
-	$(window).on('keydown', function(e){
+	$(window).on( 'keydown', function(e){
 		if (e.keyCode === KEY_F12) {
 			window.frame.openDevTools();
 		}
@@ -135,48 +162,25 @@ window.on('ready', function(){
 	
 	
 	function uploadFile( filePath ) {
+		log( "Uploading file to server: " + filePath );
+		$label.text('Uploading zipped directory');
+		
+		var fileName = getFolderName( filePath ) + ".zip";
 		
 		delivery.send({
-			name: getFolderName( filePath ),
-			path : filePath
+			name: fileName,
+			path: filePath
+		});
+		
+		delivery.on('send.start',function(filePackage){
+			console.log(filePackage.name + " is being sent to the client.");
 		});
 
 		delivery.on('send.success', function(file){ 
 			console.log('File successfully sent to client!'); 
 		});
-	}
-	
-  
-  function loggedIn(result){
-    $label.text('Logged in!');
-    $('#user-avatar').append('<img src="'+result.avatar_url+'" width="64" height="64">');
-    $('#user-name').text(result.name);
-    $('#login-section').hide();
-    $('#heading-section').show();
-    ['Followers', 'Following'].forEach(function(type){
-      github.user['get'+type]({ user: result.login }, populate.bind(null, type.toLowerCase()));
-    });
-  }
-
-  function appendAvatar(item){
-    var img = $('<img src="'+item.avatar_url+'" width="64" height="64" title="'+item.name+'">');
-    var li = $('<li class="hidden span2"/>').appendTo(this).append(img);
-    img.on('load', function(){
-      li.removeClass('hidden');
-    });
-  }
-
-  function populate(type, err, result){
-    if (err) {
-      window.console.log(err);
-    } else {
-      var container = $('#'+type);
-      $('.count', container).text(result.length);
-      result.forEach(appendAvatar, $('.thumbnails', container));
-    }
-  }
+	} // end uploadFile()
 });
-
 
 function dirExistsSync( d ) {
 	try { fs.statSync( d ).isDirectory() }
