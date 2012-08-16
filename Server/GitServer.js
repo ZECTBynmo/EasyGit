@@ -84,8 +84,9 @@ function processDone() {
 function callNextStep( error ) {
 	if( typeof(error) == "undefined" || error == null ) 
 		nextStep();
-	else
-		console.log( error );
+	else {
+		emitError( error );
+	}
 } // end callNextStep()
 
 
@@ -93,10 +94,15 @@ function gitCheckout() {
 	console.log( "Checking out back to HEAD" );
 	nextStep = gitPullRebase;
 	
-	var child = exec('git checkoutt -- .', function (error, stdout, stderr) {
+	var child = exec('git checkout -- .', function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
-		callNextStep( error );
+		
+		if( error != null ) {
+			callNextStep( stderr );
+		} else {
+			callNextStep( null );
+		}
 	});
 } // end gitCheckout()
 
@@ -108,7 +114,12 @@ function gitPullRebase() {
 	var child = exec('git pull --rebase', function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
-		callNextStep( error );
+		
+		if( error != null ) {
+			callNextStep( stderr );
+		} else {
+			callNextStep( null );
+		}
 	});
 } // end gitPullRebase()
 
@@ -118,7 +129,7 @@ function deleteExistingFiles() {
 	nextStep = copyIncomingFiles;	
 	
 	// REMOVE THE DIRECTORY RECURSIVELY (scary, I know)
-//	wrench.rmdirRecursive( baseDir, callNextStep );
+	wrench.rmdirRecursive( baseDir, callNextStep );
 } // end deleteExistingFiles()
 
 
@@ -148,10 +159,11 @@ function gitCommit() {
 	exec('git commit -m "' + commitMessage + '" -- ' + baseDir, function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
-		if (error !== null) {
-			console.log(error);
+		
+		if( error != null ) {
+			callNextStep( stderr );
 		} else {
-			console.log( "Success!" );
+			callNextStep( null );
 		}
 	});
 }
@@ -167,10 +179,9 @@ function gitPush() {
 			console.log(error);
 		} else {
 			console.log( "Success!" );
+			processDone();
 		}
 	});
-	
-	processDone();
 } // end gitPush()
 
 
