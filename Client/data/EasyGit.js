@@ -1,3 +1,22 @@
+// --------------------------------------------------------------
+// GIT Directory
+//
+// This changes which directory this application will
+// commit files to (and change) in your git
+// repository. The user will have the ability to change 
+// anything within this directory. 
+//
+// Choose a directory that is small in number and size of files,
+// and expect that a client could accidentally wipe it at
+// any time (remember, they probably don't know git!).
+//
+// Suggested use is for folders like YourProject/assets/ or 
+// YourProject/resources/ or something like that.
+// --------------------------------------------------------------
+var GIT_DIRECTORY_TO_MODIFY = "";		
+// --------------------------------------------------------------			
+										
+
 var fs = require("fs");
 var zip = require("node-native-zip");
 var folder = require( "./folder" );
@@ -55,12 +74,57 @@ window.on('ready', function(){
 		console.log('System', e ? e : 'A unknown error occurred');
 		$buttons.attr('disabled', true);
 		$info.removeClass('success').addClass('error');
-		$label.text( "Connection error: " + e );
+		$label.text( "Socket error: " + e );
 	});
 	
-	socket.on("delivery.connect", function() {
-		console.log( "Got delivery connect" );
-	});
+	socket.on( "gitCheckout", function() {
+		log( "got gitCheckout" );
+		
+		$label.text( 'Clearing server state (git checkout -- .)' );
+		$info.removeClass('error').addClass('success');
+	}
+	
+	socket.on( "gitPull", function() {
+		log( "got gitPull" );
+		
+		$label.text( 'Updating server to current repo state (git pull --rebase)' );
+		$info.removeClass('error').addClass('success');
+	}
+	
+	socket.on( "deletingDir", function() {
+		log( "got deletingDir" );
+		
+		$label.text( 'Deleting all files in the directory on the server' );
+		$info.removeClass('error').addClass('success');
+	}
+	
+	socket.on( "copyingFiles", function() {
+		log( "got copyingFiles" );
+		
+		$label.text( 'Copying your files into place' );
+		$info.removeClass('error').addClass('success');
+	}
+	
+	socket.on( "gitCommit", function() {
+		log( "got gitCommit" );
+		
+		$label.text( 'Committing changed files (git commit)' );
+		$info.removeClass('error').addClass('success');
+	}
+	
+	socket.on( "gitPush", function() {
+		log( "got gitPush" );
+		
+		$label.text( 'Pushing changes to server (git push origin master)' );
+		$info.removeClass('error').addClass('success');
+	}
+	
+	socket.on( "mergeConflict", function() {
+		log( "got mergeConflict" );
+		
+		$label.text( 'Merge Conflict! Process aborted. Find a developer :/' );
+		$info.removeClass('success').addClass('error');
+	}
 	
 	socket.on( 'connect', function() {
 		log( "Sockets connected" );
@@ -176,7 +240,6 @@ window.on('ready', function(){
 	
 	function uploadFile( filePath ) {
 		log( "Uploading file to server: " + filePath );
-		$label.text('Uploading zipped directory');
 		
 		var fileName = getFolderName( filePath );
 		
@@ -185,16 +248,20 @@ window.on('ready', function(){
 			path: filePath
 		});
 		
-		delivery.on('send.error',function(error){
+		delivery.on( 'send.error', function( error ) {
+			$info.removeClass('success').addClass('error');
+			$label.text( 'Error uploading directory: ' + error );
 			log( "send error: " + error );
 		});
 		
-		delivery.on('send.start',function(filePackage){
-			console.log(filePackage.name + " is being sent to the client.");
+		delivery.on( 'send.start', function( filePackage ) {
+			$label.text('Uploading zipped directory');
+			log(filePackage.name + " is being sent to the client.");
 		});
 
 		delivery.on('send.success', function(file){ 
-			console.log('File successfully sent to client!'); 
+			log('File successfully sent to client!'); 
+			$label.text('Directory Uploaded!');
 		});
 	} // end uploadFile()
 });
