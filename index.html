@@ -1,33 +1,36 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
+
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Easygit by ZECTBynmo</title>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Easygit : One button git interface for asset management" />
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Easygit</title>
   </head>
+
   <body>
-    <div class="wrapper">
-      <header>
-        <h1>Easygit</h1>
-        <p>One button git interface for asset management</p>
 
-        <p class="view"><a href="https://github.com/ZECTBynmo/EasyGit">View the Project on GitHub <small>ZECTBynmo/EasyGit</small></a></p>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/ZECTBynmo/EasyGit">View on GitHub</a>
 
+          <h1 id="project_title">Easygit</h1>
+          <h2 id="project_tagline">One button git interface for asset management</h2>
 
-        <ul>
-          <li><a href="https://github.com/ZECTBynmo/EasyGit/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/ZECTBynmo/EasyGit/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/ZECTBynmo/EasyGit">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/ZECTBynmo/EasyGit/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/ZECTBynmo/EasyGit/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
         <h3>EasyGit</h3>
 
 <p>The intent of EasyGit is to give non-developers a way to commit assets to a git
@@ -37,15 +40,15 @@ repository without having to install and learn git. </p>
 
 <p>The server does the actual git stuff. It receives a request to transfer files to a specific directory, then goes through a series of events:</p>
 
-<p>1) Verify that the base directory exists and is longer than 6 characters (you don't want to delete C:/")
-2) Wipe any local changes (git checkout -- .)
-3) Update it's copy of the repository to the remote HEAD (git pull --rebase)
-4) Delete the base directory recursively (this is why it should probably be on a VM)
-5) Copy the incoming files (from the client) into place
-6) Commit changed files within the base directory (git commit ...)
-7) Push the changes to the remote server (git push origin master)</p>
-
-<h3>WARNING!</h3>
+<ol>
+<li>Verify that the base directory exists and is longer than 6 characters (you don't want to delete C:/")</li>
+<li>Wipe any local changes (git checkout -- .)</li>
+<li>Update it's copy of the repository to the remote HEAD (git pull --rebase)</li>
+<li>Delete the base directory recursively (this is why it should probably be on a VM)</li>
+<li>Copy the incoming files (from the client) into place</li>
+<li>Commit changed files within the base directory (git commit ...)</li>
+<li>Push the changes to the remote server (git push origin master)</li>
+</ol><h3>WARNING!</h3>
 
 <p>GitServer.js performs destructive git operations, including 'git checkout -- .' Make sure that you are running it on a computer that does not have important changes on it. You should probably run it on a VM with a cloned version of your repository, and nothing else.</p>
 
@@ -57,22 +60,30 @@ repository without having to install and learn git. </p>
 
 <p>A developer must open EasyGit.js and edit the GIT_DIRECTORY_TO_MODIFY constant. It should take the value of the path to the directory that the user will change. For example:</p>
 
-<p>var GIT_DIRECTORY_TO_MODIFY = "D:/Projects/EasyGit/Client/data/assets/img/";</p>
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">GIT_DIRECTORY_TO_MODIFY</span> <span class="o">=</span> <span class="s2">"D:/Projects/EasyGit/Client/data/assets/img/"</span><span class="p">;</span>
+</pre></div>
 
 <p>Then the user of the application would only be able to edit files within /img.</p>
 
 <p>The application connects to the git server automatically. A user has to do the following things to send their changes to the server:</p>
 
-<p>1) Give the path to the equivalent folder on their computer (maybe "C:/MyDocuments/img/")
-2) Type a comment about their changes (to be used as a commit message)
-3) Press submit!</p>
+<ol>
+<li>Give the path to the equivalent folder on their computer (maybe "C:/MyDocuments/img/")</li>
+<li>Type a comment about their changes (to be used as a commit message)</li>
+<li>Press submit!</li>
+</ol>
       </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/ZECTBynmo">ZECTBynmo</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Easygit maintained by <a href="https://github.com/ZECTBynmo">ZECTBynmo</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
+
     
+
   </body>
 </html>
