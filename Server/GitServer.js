@@ -128,6 +128,11 @@ function deleteExistingFiles() {
 	console.log( "Deleting all files within " + baseDir );
 	nextStep = copyIncomingFiles;	
 	
+	if( baseDir.length < 6 ) {
+		console.log( "ALMOST DELETED " + baseDir );
+		emitError( "Base directory (" + baseDir + ") too short, get a developer" );
+	}
+	
 	// REMOVE THE DIRECTORY RECURSIVELY (scary, I know)
 	wrench.rmdirRecursive( baseDir, callNextStep );
 } // end deleteExistingFiles()
@@ -138,7 +143,7 @@ function copyIncomingFiles() {
 	nextStep = gitPush;
 	
 	try {
-		zip = new AdmZip("tempArchive.zip");
+		zip = new AdmZip( "./temp/" + fileName );
 	} catch( err ) {
 		console.log( "Couldn't open zipped directory: " + err );
 	}
@@ -171,12 +176,23 @@ function gitCommit() {
 
 function gitPush() {	
 	console.log( "Pushing changes to git" );
-	
-	exec('git push origin master', function (error, stdout, stderr) {
+	/*
+	exec('git status', function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
 		if (error !== null) {
 			console.log(error);
+		} else {
+			console.log( "Success!" );
+			processDone();
+		}
+	});
+	*/
+	exec('git push origin master', function (error, stdout, stderr) {
+		console.log('stdout: ' + stdout);
+		console.log('stderr: ' + stderr);
+		if (error !== null) {
+			emitError(error);
 		} else {
 			console.log( "Success!" );
 			processDone();
