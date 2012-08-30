@@ -5,7 +5,7 @@ var exec = require('child_process').exec
 var wrench = require("wrench");
 
 var AdmZip = require('adm-zip');
-var zip; 
+var unzip; 
 
 // To be determined later
 var baseDir;
@@ -25,6 +25,8 @@ var io  = require( 'socket.io' ).listen(port+1);
 var dl = require("delivery");
 
 io.sockets.on('connection', function(socket){
+	var delivery = dl.listen(socket);
+
 	console.log( "Socket connection" );
 	
 	socket.on( "requestTransfer", function( data ) {
@@ -32,6 +34,7 @@ io.sockets.on('connection', function(socket){
 		console.log( data );
 		if( isLocked ) {
 			emitError( "Transfer locked: server busy" );
+			return;
 		} else {
 			currentUser = socket.id;
 			baseDir = data.baseDir;
@@ -42,8 +45,37 @@ io.sockets.on('connection', function(socket){
 			isLocked = true;			
 		}
 	});
+	
+	socket.on( "requestHEAD", function( data ) {
+		console.log( "update to HEAD requested" );
+		console.log( data );
+		if( isLocked ) {
+			emitError( "Transfer locked: server busy" );
+			return;
+		} else {			
+			delivery.send({
+				name: data.fileName,
+				path: baseDir
+			});
+			
+			delivery.on( 'send.error', function( error ) {
+				$info.removeClass('success').addClass('error');
+				$label.text( 'Error uploading directory: ' + error );
+				log( "send error: " + error );
+			});
+			
+			delivery.on( 'send.start', function( filePackage ) {
+				$label.text('Uploading zipped directory');
+				log(filePackage.name + " is being sent to the client.");
+			});
+
+			delivery.on('send.success', function(file){ 
+				log('File successfully sent to client!'); 
+				$label.text('Directory Uploaded!');
+			});		
+		}
+	});
   
-	var delivery = dl.listen(socket);
 	delivery.on('receive.success',function(file){
 		var fileNameWithoutPath = getFileNameFromPath( file.name );
 		
@@ -54,7 +86,7 @@ io.sockets.on('connection', function(socket){
 			fs.mkdir( "temp" );
 		}
 		
-		fs.writeFile( "temp/" + fileNameWithoutPath ,file.buffer, function(err){
+		fs.writeFile( "temp/" + fileNameWithoutPath, file.buffer, function( err ) {
 			if( err ) {
 				console.log( 'File could not be saved: ' + err );
 			} else {
@@ -107,9 +139,15 @@ function gitCheckout() {
 } // end gitCheckout()
 
 
-function gitPullRebase() {
+function gitPullRebase( clearAndPullOnly ) {
 	console.log( "Pulling from remote" );
-	nextStep = deleteExistingFiles;	
+	if( clearAndPullOnly ) {
+		nextStep = zipDirectory( baseDir, function() {
+			console.log( "Zipped directory" );
+		});
+	} else {
+		nextStep = deleteExistingFiles;	
+	}
 	
 	var child = exec('git pull --rebase', function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
@@ -124,13 +162,14 @@ function gitPullRebase() {
 } // end gitPullRebase()
 
 
+// REMOVE THE DIRECTORY RECURSIVELY (scary, I know)
 function deleteExistingFiles() {
 	console.log( "Deleting all files within " + baseDir );
 	nextStep = copyIncomingFiles;	
 	
 	if( baseDir.length < 6 ) {
 		console.log( "ALMOST DELETED " + baseDir );
-		emitError( "Base directory (" + baseDir + ") too short, get a developer" );
+		emitError( "Base directory (" + baseDir + ") is too short, do you really want to delete that :/" );
 	}
 	
 	// REMOVE THE DIRECTORY RECURSIVELY (scary, I know)
@@ -143,13 +182,13 @@ function copyIncomingFiles() {
 	nextStep = gitPush;
 	
 	try {
-		zip = new AdmZip( "./temp/" + fileName );
+		unzip = new AdmZip( "./temp/" + fileName );
 	} catch( err ) {
 		console.log( "Couldn't open zipped directory: " + err );
 	}
 	
 	// Extract all files 
-	zip.extractAllTo( baseDir, true );
+	unzip.extractAllTo( baseDir, true );
     
     callNextStep();
 } // end copyIncomingFiles()
@@ -233,3 +272,31 @@ function getBaseDirFromFilePath( filePath ) {
 
 	return fullPath.substring( 0, lastfolderStart + 1 );
 }
+
+
+function zipDirectory( dir, callback ) {
+	var archive = new zip();
+
+	// map all files in the approot thru this function
+	folder.mapAllFiles(dir, function (path, stats, callback) {
+		// prepare for the .addFiles function
+		callback({ 
+			name: path.replace(dir, "").substr(1), 
+			path: path 
+		});
+	}, function (err, data) {
+		if (err) return callback(err);
+
+		// add the files to the zip
+		archive.addFiles(data, function (err) {
+			if (err) return callback(err);
+
+			// write the zip file
+			fs.writeFile(dir + ".zip", archive.toBuffer(), function ( err ) {
+				if (err) return callback(err);
+
+				callback(null, dir + ".zip");
+			});
+		});
+	});   
+} // end zipDirectory()

@@ -13,9 +13,10 @@
 // Suggested use is for folders like YourProject/assets/ or 
 // YourProject/resources/ or something like that.
 // --------------------------------------------------------------
-var GIT_DIRECTORY_TO_MODIFY = "";		
+var GIT_DIRECTORY_TO_MODIFY = "D:/Projects/testrepo/testFolder/";		
+var LOCAL_FOLDER = "D:/Projects/testrepo/testFolder/";		
 // --------------------------------------------------------------			
-										
+var currentSHA = readSHA();
 
 var fs = require("fs");
 var zip = require("node-native-zip");
@@ -38,6 +39,8 @@ app.serveFilesFrom(__dirname + '/assets');
 
 function log(text) { if( true ) console.log(text); }
 
+//////////////////////////////////////////////////////////////////////////
+// Create Window
 var window = app.createWindow({
   width: 418,
   height: 412,
@@ -46,11 +49,17 @@ var window = app.createWindow({
   icons: __dirname + '/assets/icons'
 });
 
+
+//////////////////////////////////////////////////////////////////////////
+// on create
 window.on('create', function(){
-  window.frame.show();
-  window.frame.center();
+	window.frame.show();
+	window.frame.center();
 });
 
+
+//////////////////////////////////////////////////////////////////////////
+// on ready
 window.on('ready', function(){
 	log( "Document ready" );
 	
@@ -158,6 +167,27 @@ window.on('ready', function(){
 			$buttons.attr( 'disabled', false );
 		});
 		
+		
+		delivery.on('receive.success',function(file){
+		var fileNameWithoutPath = getFileNameFromPath( file.name );
+		
+		fileName = fileNameWithoutPath;
+		
+		// Create our temp directory if it doesn't exist already
+		if( !dirExistsSync( "temp" ) ) {
+			fs.mkdir( "temp" );
+		}
+		
+		fs.writeFile( "temp/" + fileNameWithoutPath, file.buffer, function( err ) {
+			if( err ) {
+				console.log( 'File could not be saved: ' + err );
+			} else {
+				console.log( 'File ' + file.name + " saved" );
+				startProcess();
+			};
+		});
+	});	
+		
 	});
 
 	$(window).on( 'keydown', function(e){
@@ -195,8 +225,15 @@ window.on('ready', function(){
 			
 			uploadFile( path + ".zip", commitComment );
 		});
-		
-		
+	});
+	
+	$('#pull-button').click(function( ) {
+		var fileName = "testFolder";
+		console.log( fileName );
+		var data = {
+			fileName: fileName
+		};
+		socket.emit( "requestHEAD", data );
 	});
 
 	function verifyDirectory( path ) {
@@ -280,6 +317,9 @@ window.on('ready', function(){
 	} // end uploadFile()
 });
 
+
+//////////////////////////////////////////////////////////////////////////
+// Returns whether a directory exists on disk
 function dirExistsSync( d ) {
 	try { fs.statSync( d ).isDirectory() }
 	catch( er ) { log(er); return false }
@@ -287,11 +327,45 @@ function dirExistsSync( d ) {
 	return true;
 } // end dirExistsSync()
 
+
+//////////////////////////////////////////////////////////////////////////
+// Returns the folder from a full filepath
 function getFolderName( fullPath ) {
 	var lastBackSlash = fullPath.lastIndexOf( "\\" ),
 		lastForwardSlash = fullPath.lastIndexOf( "/" );
+	
+	/*
+	if( lastBackSlash == fullPath.length-1 || lastForwardSlash == fullPath.length-1 ) {
+		fullPath= fullPath.substring( 0, fullPath.length-1 );
+		
+		lastBackSlash = fullPath.lastIndexOf( "\\" );
+		lastForwardSlash = fullPath.lastIndexOf( "/" );
+	}
+	*/
 		
 	var folderStart = lastBackSlash > lastForwardSlash ? lastBackSlash : lastForwardSlash;
 
 	return fullPath.substring( folderStart + 1 );
-}
+} // end getFolderName()
+
+
+//////////////////////////////////////////////////////////////////////////
+// Write a git SHA to a text file
+function writeSHA( currentSHA ) {
+	// See whether the file exists already
+	try { stats = fs.lstatSync('./currentSHA.txt'); }
+	catch( e ) { console.log(e); }
+	
+	var fs = require('fs');
+	var stream = fs.createWriteStream("./currentSHA.txt");
+	stream.once('open', function(fd) {
+	  stream.write( currentSHA ); 
+	});
+} // end writeSHA()
+
+
+//////////////////////////////////////////////////////////////////////////
+// Write a git SHA from disk
+function readSHA() {
+
+} // end readSHA()
