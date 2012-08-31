@@ -231,7 +231,8 @@ window.on('ready', function(){
 		var fileName = "testFolder";
 		console.log( fileName );
 		var data = {
-			fileName: fileName
+			fileName: fileName,
+			baseDir: GIT_DIRECTORY_TO_MODIFY
 		};
 		socket.emit( "requestHEAD", data );
 	});

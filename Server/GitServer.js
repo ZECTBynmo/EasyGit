@@ -48,17 +48,22 @@ io.sockets.on('connection', function(socket){
 	
 	socket.on( "requestHEAD", function( data ) {
 		console.log( "update to HEAD requested" );
-		console.log( data );
+		
+		var deliveryObj= {
+			name: data.fileName,
+			path: data.baseDir
+		};
+		
+		console.log( deliveryObj );
+		
 		if( isLocked ) {
 			emitError( "Transfer locked: server busy" );
 			return;
 		} else {			
-			delivery.send({
-				name: data.fileName,
-				path: baseDir
-			});
+			delivery.send( deliveryObj );
 			
 			delivery.on( 'send.error', function( error ) {
+				console.log( error );
 				$info.removeClass('success').addClass('error');
 				$label.text( 'Error uploading directory: ' + error );
 				log( "send error: " + error );
