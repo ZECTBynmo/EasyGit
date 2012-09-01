@@ -11,6 +11,7 @@ var unzip;
 var baseDir;
 var fileName; 
 var fileData;
+var isUpdateOnly = false; // Set when we're just looking to update the server to the most recent state of the repo and zip the directory
 
 var isLocked = false;
 var currentUser = null;
@@ -26,6 +27,19 @@ var dl = require("delivery");
 
 io.sockets.on('connection', function(socket){
 	var delivery = dl.listen(socket);
+	
+	delivery.on( 'send.error', function( error ) {
+		console.log( error );
+		console.log( "send error: " + error );
+	});
+	
+	delivery.on( 'send.start', function( filePackage ) {
+		console.log(filePackage.name + " is being sent to the client.");
+	});
+
+	delivery.on('send.success', function(file){ 
+		console.log('File successfully sent to client!'); 
+	});	
 
 	console.log( "Socket connection" );
 	
@@ -59,27 +73,34 @@ io.sockets.on('connection', function(socket){
 		if( isLocked ) {
 			emitError( "Transfer locked: server busy" );
 			return;
-		} else {			
-			delivery.send( deliveryObj );
-			
-			delivery.on( 'send.error', function( error ) {
-				console.log( error );
-				$info.removeClass('success').addClass('error');
-				$label.text( 'Error uploading directory: ' + error );
-				log( "send error: " + error );
-			});
-			
-			delivery.on( 'send.start', function( filePackage ) {
-				$label.text('Uploading zipped directory');
-				log(filePackage.name + " is being sent to the client.");
-			});
-
-			delivery.on('send.success', function(file){ 
-				log('File successfully sent to client!'); 
-				$label.text('Directory Uploaded!');
-			});		
-		}
-	});
+		} else {
+			console.log( "Checking out" );
+			var child = exec('git checkout -- .', function (error, stdout, stderr) {
+				console.log('stdout: ' + stdout);
+				console.log('stderr: ' + stderr);
+				
+				if( error != null ) {
+					emitError( error );
+				} else {
+					console.log( "pulling" );
+					var child = exec('git pull --rebase', function (error, stdout, stderr) {
+						console.log('stdout: ' + stdout);
+						console.log('stderr: ' + stderr);
+						
+						if( error != null ) {
+							emitError( error );
+						} else {
+							console.log( "Zipping " + data.baseDir );
+							zipDirectory( data.baseDir, function() {
+								console.log( "Zipped directory" );
+								delivery.send( deliveryObj );
+							}); // end zip dir
+						} // end pull success
+					}); // end exec git pull
+				} // end checkout success
+			});	// end exec git checkout
+		} // end if not locked
+	}); // end on request HEAD
   
 	delivery.on('receive.success',function(file){
 		var fileNameWithoutPath = getFileNameFromPath( file.name );
@@ -100,7 +121,7 @@ io.sockets.on('connection', function(socket){
 			};
 		});
 	});	
-});
+}); // end socket on Connection
 
 
 function startProcess() {
@@ -280,16 +301,28 @@ function getBaseDirFromFilePath( filePath ) {
 
 
 function zipDirectory( dir, callback ) {
-	var archive = new zip();
+	var zipper = require("node-native-zip");
+	var folder = require( "./folder" );
+	var archive = new zipper();
+	
+	console.log( "Staring to zip" );
+	console.log( dir );
 
 	// map all files in the approot thru this function
-	folder.mapAllFiles(dir, function (path, stats, callback) {
-		// prepare for the .addFiles function
-		callback({ 
+	folder.mapAllFiles(dir, function (path, stats, callback) {		
+		if( path.indexOf(".git") != -1 ) return;
+		
+		var callbackParams = {
 			name: path.replace(dir, "").substr(1), 
 			path: path 
-		});
+		};
+		
+		console.log( callbackParams );
+	
+		// prepare for the .addFiles function
+		callback( callbackParams );
 	}, function (err, data) {
+		console.log( err );
 		if (err) return callback(err);
 
 		// add the files to the zip
@@ -305,3 +338,35 @@ function zipDirectory( dir, callback ) {
 		});
 	});   
 } // end zipDirectory()
+
+
+//////////////////////////////////////////////////////////////////////////
+// Returns the folder from a full filepath
+function getFolderName( fullPath ) {
+	var lastBackSlash = fullPath.lastIndexOf( "\\" ),
+		lastForwardSlash = fullPath.lastIndexOf( "/" ),
+		isForwardSlash;
+		
+	// Figure out whether we're working with a forward or backward slash
+	if( lastBackSlash > lastForwardSlash ) {
+		lastSlash = lastBackSlash;		
+		isForwardSlash = false;
+	} else {
+		lastSlash = lastForwardSlash;		
+		isForwardSlash = true;
+	}
+	
+	// Pull off any file thats on the end
+	if( fullPath.indexOf(".") != -1 ) {
+		fullPath= fullPath.substring( 0, lastSlash );
+		lastSlash = isForwardSlash ? fullPath.lastIndexOf( "/" ) : fullPath.lastIndexOf( "\\" );
+	}
+	
+	// Make sure the last slash isn't at the end of the string
+	if( lastSlash == fullPath.length - 1 ) {
+		fullPath= fullPath.substring( 0, fullPath.length - 1 );
+		lastSlash = isForwardSlash ? fullPath.lastIndexOf( "/" ) : fullPath.lastIndexOf( "\\" );
+	}
+	
+	return fullPath.substring( lastSlash + 1 );
+} // end getFolderName()
