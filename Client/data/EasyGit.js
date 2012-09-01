@@ -13,8 +13,8 @@
 // Suggested use is for folders like YourProject/assets/ or 
 // YourProject/resources/ or something like that.
 // --------------------------------------------------------------
-var GIT_DIRECTORY_TO_MODIFY = "D:/Projects/testrepo/testFolder/";		
-var LOCAL_FOLDER = "D:/Projects/testrepo/testFolder/";		
+var GIT_DIRECTORY_TO_MODIFY = "C:/Projects/testrepo";
+var LOCAL_FOLDER = "C:/Projects/testrepo/secondtestrepo/";
 // --------------------------------------------------------------			
 var currentSHA = readSHA();
 
@@ -169,25 +169,25 @@ window.on('ready', function(){
 		
 		
 		delivery.on('receive.success',function(file){
-		var fileNameWithoutPath = getFileNameFromPath( file.name );
-		
-		fileName = fileNameWithoutPath;
-		
-		// Create our temp directory if it doesn't exist already
-		if( !dirExistsSync( "temp" ) ) {
-			fs.mkdir( "temp" );
-		}
-		
-		fs.writeFile( "temp/" + fileNameWithoutPath, file.buffer, function( err ) {
-			if( err ) {
-				console.log( 'File could not be saved: ' + err );
-			} else {
-				console.log( 'File ' + file.name + " saved" );
-				startProcess();
-			};
-		});
-	});	
-		
+			console.log( "Got a file" );
+			var fileNameWithoutPath = getFileNameFromPath( file.name );
+			
+			fileName = fileNameWithoutPath;
+			
+			// Create our temp directory if it doesn't exist already
+			if( !dirExistsSync( "temp" ) ) {
+				fs.mkdir( "temp" );
+			}
+			
+			fs.writeFile( "temp/" + fileNameWithoutPath, file.buffer, function( err ) {
+				if( err ) {
+					console.log( 'File could not be saved: ' + err );
+				} else {
+					console.log( 'File ' + file.name + " saved" );
+					startProcess();
+				};
+			});
+		});			
 	});
 
 	$(window).on( 'keydown', function(e){
