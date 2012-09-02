@@ -4,6 +4,8 @@ var fs = require("fs");
 var exec = require('child_process').exec
 var wrench = require("wrench");
 
+var zipper = require("node-native-zip");
+var folder = require( "./folder" );
 var AdmZip = require('adm-zip');
 var unzip; 
 
@@ -65,7 +67,7 @@ io.sockets.on('connection', function(socket){
 		
 		var deliveryObj= {
 			name: data.fileName,
-			path: data.baseDir
+			path: getOneFolderUp(data.baseDir) + data.fileName
 		};
 		
 		console.log( deliveryObj );
@@ -93,7 +95,9 @@ io.sockets.on('connection', function(socket){
 							console.log( "Zipping " + data.baseDir );
 							zipDirectory( data.baseDir, function() {
 								console.log( "Zipped directory" );
-								delivery.send( deliveryObj );
+								console.log( deliveryObj );
+								try { delivery.send( deliveryObj ); } 
+								catch(err) { console.log( err ); }
 							}); // end zip dir
 						} // end pull success
 					}); // end exec git pull
@@ -301,8 +305,6 @@ function getBaseDirFromFilePath( filePath ) {
 
 
 function zipDirectory( dir, callback ) {
-	var zipper = require("node-native-zip");
-	var folder = require( "./folder" );
 	var archive = new zipper();
 	
 	console.log( "Staring to zip" );
@@ -310,19 +312,18 @@ function zipDirectory( dir, callback ) {
 
 	// map all files in the approot thru this function
 	folder.mapAllFiles(dir, function (path, stats, callback) {		
-		if( path.indexOf(".git") != -1 ) return;
+		if( path.indexOf(".git") != -1 ) return callback();
+		
+		console.log( path ) ;
 		
 		var callbackParams = {
 			name: path.replace(dir, "").substr(1), 
 			path: path 
 		};
-		
-		console.log( callbackParams );
 	
 		// prepare for the .addFiles function
 		callback( callbackParams );
 	}, function (err, data) {
-		console.log( err );
 		if (err) return callback(err);
 
 		// add the files to the zip
@@ -336,7 +337,7 @@ function zipDirectory( dir, callback ) {
 				callback(null, dir + ".zip");
 			});
 		});
-	});   
+	}, 2);   
 } // end zipDirectory()
 
 
@@ -370,3 +371,10 @@ function getFolderName( fullPath ) {
 	
 	return fullPath.substring( lastSlash + 1 );
 } // end getFolderName()
+
+
+function getOneFolderUp( folderPath ) {
+	var folderName = getFolderName( folderPath );
+	
+	return folderPath.substring( 0, folderPath.indexOf(folderName) );	
+}

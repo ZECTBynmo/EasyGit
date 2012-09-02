@@ -184,7 +184,6 @@ window.on('ready', function(){
 					console.log( 'File could not be saved: ' + err );
 				} else {
 					console.log( 'File ' + file.name + " saved" );
-					startProcess();
 				};
 			});
 		});			
@@ -228,7 +227,7 @@ window.on('ready', function(){
 	});
 	
 	$('#pull-button').click(function( ) {
-		var fileName = "testFolder";
+		var fileName = "testrepo.zip";
 		console.log( fileName );
 		var data = {
 			fileName: fileName,
@@ -370,3 +369,13 @@ function writeSHA( currentSHA ) {
 function readSHA() {
 
 } // end readSHA()
+
+
+function getFileNameFromPath( fullPath ) {
+	var lastBackSlash = fullPath.lastIndexOf( "\\" ),
+		lastForwardSlash = fullPath.lastIndexOf( "/" );
+		
+	var folderStart = lastBackSlash > lastForwardSlash ? lastBackSlash : lastForwardSlash;
+
+	return fullPath.substring( folderStart + 1 );
+}
