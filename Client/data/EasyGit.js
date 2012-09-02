@@ -14,7 +14,7 @@
 // YourProject/resources/ or something like that.
 // --------------------------------------------------------------
 var GIT_DIRECTORY_TO_MODIFY = "C:/Projects/testrepo";
-var LOCAL_FOLDER = "C:/Projects/testrepo/secondtestrepo/";
+var LOCAL_FOLDER = "C:/Projects/secondtestrepo/";
 // --------------------------------------------------------------			
 var currentSHA = readSHA();
 
@@ -174,12 +174,14 @@ window.on('ready', function(){
 			
 			fileName = fileNameWithoutPath;
 			
+			var saveLocation = LOCAL_FOLDER + "temp/";
+			
 			// Create our temp directory if it doesn't exist already
-			if( !dirExistsSync( "temp" ) ) {
-				fs.mkdir( "temp" );
+			if( !dirExistsSync( saveLocation ) ) {
+				fs.mkdir( saveLocation );
 			}
 			
-			fs.writeFile( "temp/" + fileNameWithoutPath, file.buffer, function( err ) {
+			fs.writeFile( saveLocation + fileNameWithoutPath, file.buffer, function( err ) {
 				if( err ) {
 					console.log( 'File could not be saved: ' + err );
 				} else {
