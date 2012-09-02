@@ -177,7 +177,7 @@ window.on('ready', function(){
 			var saveLocation = LOCAL_FOLDER + "temp/";
 			
 			// Create our temp directory if it doesn't exist already
-			if( !dirExistsSync( saveLocation ) ) {
+			if( !dirExistsSync(saveLocation) ) {
 				fs.mkdir( saveLocation );
 			}
 			
@@ -199,9 +199,17 @@ window.on('ready', function(){
 
 	$folderPath.focus();
 
+	var isPulling = false;
+	
 	$('#path-form').submit(function(e){
 		log( "Button Pressed" );
 		e.preventDefault();
+		
+		// Don't do any of this stuff if we're just trying to pull
+		if( isPulling ) {
+			isPulling = false;
+			return;
+		}
 		
 		$buttons.attr('disabled', true);
 		$info.removeClass('error').addClass('success');
@@ -229,7 +237,8 @@ window.on('ready', function(){
 	});
 	
 	$('#pull-button').click(function( ) {
-		var fileName = "testrepo.zip";
+		isPulling = true;
+		var fileName = getFolderName(GIT_DIRECTORY_TO_MODIFY) + ".zip";
 		console.log( fileName );
 		var data = {
 			fileName: fileName,
@@ -381,3 +390,9 @@ function getFileNameFromPath( fullPath ) {
 
 	return fullPath.substring( folderStart + 1 );
 }
+
+// Make sure we're catching all uncaught exceptions
+process.addListener("uncaughtException", function (err) {
+    console.log("Uncaught exception: " + err);
+    console.trace();
+});
