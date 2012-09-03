@@ -3,6 +3,8 @@ var port = typeof( process.env.PORT ) == "undefined" ? 5000 : process.env.PORT;
 var fs = require("fs");
 var exec = require('child_process').exec
 var wrench = require("wrench");
+var git = require("./GitOperations.js");
+var async = require("async");
 
 var zipper = require("node-native-zip");
 var folder = require( "./folder" );
@@ -121,7 +123,23 @@ io.sockets.on('connection', function(socket){
 				console.log( 'File could not be saved: ' + err );
 			} else {
 				console.log( 'File ' + file.name + " saved" );
-				startProcess();
+				
+				// Run our git operations asynchronously
+				async.series([
+					function( callback ){ 
+						git.checkout( var undefinedVar, callback );
+					},
+					function( callback ){ 
+						git.pull( true, callback );
+					},
+					deleteExistingFiles,
+					copyIncomingFiles,
+					function( callback ){ 
+						git.push( callback );
+					},
+				], function(err, results){
+					console.log( err || results );
+				});
 			};
 		});
 	});	
@@ -193,7 +211,7 @@ function gitPullRebase( clearAndPullOnly ) {
 
 
 // REMOVE THE DIRECTORY RECURSIVELY (scary, I know)
-function deleteExistingFiles() {
+function deleteExistingFiles( callback ) {
 	console.log( "Deleting all files within " + baseDir );
 	nextStep = copyIncomingFiles;	
 	
@@ -203,11 +221,11 @@ function deleteExistingFiles() {
 	}
 	
 	// REMOVE THE DIRECTORY RECURSIVELY (scary, I know)
-	wrench.rmdirRecursive( baseDir, callNextStep );
+	wrench.rmdirRecursive( baseDir, callback || callNextStep );
 } // end deleteExistingFiles()
 
 
-function copyIncomingFiles() {
+function copyIncomingFiles( callback ) {
 	console.log( "Unzipping and copying incoming files into place" );
 	nextStep = gitPush;
 	
@@ -220,7 +238,7 @@ function copyIncomingFiles() {
 	// Extract all files 
 	unzip.extractAllTo( baseDir, true );
     
-    callNextStep();
+	if( typeof(callback) != "undefined" ) { callNextStep(); }
 } // end copyIncomingFiles()
 
 
