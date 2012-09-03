@@ -20,6 +20,7 @@ var currentSHA = readSHA();
 
 var fs = require("fs");
 var zip = require("node-native-zip");
+var AdmZip = require('adm-zip');
 var folder = require( "./folder" );
 
 var io = require( 'socket.io-client' );
@@ -186,6 +187,10 @@ window.on('ready', function(){
 					console.log( 'File could not be saved: ' + err );
 				} else {
 					console.log( 'File ' + file.name + " saved" );
+					console.log( saveLocation + fileNameWithoutPath );
+					console.log( LOCAL_FOLDER );
+					
+					extractFiles( fileNameWithoutPath, saveLocation, LOCAL_FOLDER );
 				};
 			});
 		});			
@@ -391,8 +396,19 @@ function getFileNameFromPath( fullPath ) {
 	return fullPath.substring( folderStart + 1 );
 }
 
+
+function extractFiles( zipFile, source, dest ) {
+	var unzip = new AdmZip( source + zipFile );
+	
+	console.log( "Extracting " + zipFile + " to " + dest );
+	unzip.extractAllTo( dest, true );
+}
+
+/*
 // Make sure we're catching all uncaught exceptions
 process.addListener("uncaughtException", function (err) {
     console.log("Uncaught exception: " + err);
     console.trace();
 });
+
+*/

@@ -85,7 +85,7 @@ io.sockets.on('connection', function(socket){
 					emitError( error );
 				} else {
 					console.log( "pulling" );
-					var child = exec('git pull --rebase', function (error, stdout, stderr) {
+					var child = exec('git pull', function (error, stdout, stderr) {
 						console.log('stdout: ' + stdout);
 						console.log('stderr: ' + stderr);
 						
@@ -179,7 +179,7 @@ function gitPullRebase( clearAndPullOnly ) {
 		nextStep = deleteExistingFiles;	
 	}
 	
-	var child = exec('git pull --rebase', function (error, stdout, stderr) {
+	var child = exec('git pull origin master --rebase', function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
 		
@@ -314,12 +314,18 @@ function zipDirectory( dir, callback ) {
 	folder.mapAllFiles(dir, function (path, stats, callback) {		
 		if( path.indexOf(".git") != -1 ) return callback();
 		
-		console.log( path ) ;
+		// Figure out the base directory for all of these files
+		var baseDir = getFolderName(dir);
+		
+		var afterBaseIndex = path.indexOf(baseDir) /* + baseDir.length + 1*/;
 		
 		var callbackParams = {
-			name: path.replace(dir, "").substr(1), 
+			//name: path.replace(dir, "").substr(1), 
+			name: path.substring(afterBaseIndex, path.length),
 			path: path 
 		};
+		
+		console.log( callbackParams );
 	
 		// prepare for the .addFiles function
 		callback( callbackParams );
@@ -331,13 +337,14 @@ function zipDirectory( dir, callback ) {
 			if (err) return callback(err);
 
 			// write the zip file
+			console.log( "writing zip file to " + dir );
 			fs.writeFile(dir + ".zip", archive.toBuffer(), function ( err ) {
 				if (err) return callback(err);
 
 				callback(null, dir + ".zip");
 			});
 		});
-	}, 2);   
+	});   
 } // end zipDirectory()
 
 
