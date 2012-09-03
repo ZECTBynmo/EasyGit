@@ -179,7 +179,7 @@ function gitPullRebase( clearAndPullOnly ) {
 		nextStep = deleteExistingFiles;	
 	}
 	
-	var child = exec('git pull origin master --rebase', function (error, stdout, stderr) {
+	var child = exec('git pull', function (error, stdout, stderr) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
 		
