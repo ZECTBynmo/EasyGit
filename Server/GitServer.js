@@ -79,9 +79,34 @@ io.sockets.on('connection', function(socket){
 			return;
 		} else {
 			console.log( "Checking out" );
+			
+			// Run our git operations asynchronously
+			async.series([
+				function( callback ){ 
+					var undefinedVar;
+					git.checkout( undefinedVar, callback );
+				},
+				function( callback ){ 
+					git.pull( true, callback );
+				},
+				function( callback ){ 
+					zipDirectory( data.baseDir, function() {
+						console.log( "Zipped directory" );
+						console.log( deliveryObj );
+						try { delivery.send( deliveryObj ); } 
+						catch(err) { console.log( err ); callback(err); }
+						
+						callback( null, "Success" );
+					}); // end zip dir
+				},
+			], function(err, results){
+				console.log( err || results );
+			});
+				
+			/*
 			var child = exec('git checkout -- .', function (error, stdout, stderr) {
 				console.log('stdout: ' + stdout);
-				console.log('stderr: ' + stderr);
+				console.log('stderr: ' + stderr);				
 				
 				if( error != null ) {
 					emitError( error );
@@ -105,6 +130,8 @@ io.sockets.on('connection', function(socket){
 					}); // end exec git pull
 				} // end checkout success
 			});	// end exec git checkout
+			*/
+			
 		} // end if not locked
 	}); // end on request HEAD
   
@@ -127,7 +154,8 @@ io.sockets.on('connection', function(socket){
 				// Run our git operations asynchronously
 				async.series([
 					function( callback ){ 
-						git.checkout( var undefinedVar, callback );
+						var undefinedVar;
+						git.checkout( undefinedVar, callback );
 					},
 					function( callback ){ 
 						git.pull( true, callback );
