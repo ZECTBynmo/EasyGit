@@ -13,8 +13,8 @@
 // Suggested use is for folders like YourProject/assets/ or 
 // YourProject/resources/ or something like that.
 // --------------------------------------------------------------
-var GIT_DIRECTORY_TO_MODIFY = "C:/Projects/testrepo";
-var LOCAL_FOLDER = "C:/Projects/secondtestrepo/";
+var GIT_DIRECTORY_TO_MODIFY = "D:/Projects/testrepo";
+var LOCAL_FOLDER = "D:/Projects/secondtestfolder/";
 // --------------------------------------------------------------			
 var currentSHA = readSHA();
 
@@ -25,7 +25,7 @@ var folder = require( "./folder" );
 
 var io = require( 'socket.io-client' );
 //var io  = require('socket.io').listen(5001);
-var dl  = require('delivery');
+var dl  = require('./Delivery.js/index');
 	
 var socket;
 var delivery

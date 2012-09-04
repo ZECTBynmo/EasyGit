@@ -2,7 +2,7 @@ var port = typeof( process.env.PORT ) == "undefined" ? 5000 : process.env.PORT;
 
 var fs = require("fs");
 var exec = require('child_process').exec;
-var wrench = require("wrench");
+var wrench = require("./wrench-js/lib/wrench");
 var git = require("./GitOperations.js");
 var async = require("async");
 
@@ -160,8 +160,12 @@ io.sockets.on('connection', function(socket){
 					function( callback ){ 
 						git.pull( true, callback );
 					},
-					deleteExistingFiles,
-					copyIncomingFiles,
+					function( callback ){ 
+						deleteExistingFiles( callback );
+					},
+					function( callback ){ 
+						copyIncomingFiles( callback );
+					},
 					function( callback ){ 
 						git.push( callback );
 					},
@@ -249,14 +253,30 @@ function deleteExistingFiles( callback ) {
 	}
 	
 	var rmDirFilter = function( file ) {
-		if( file.name.indexOf(".git") != -1 )
-			return true;
-		else
+		console.log( file );
+		
+		var path;
+		
+		if( typeof(file) == "string" ) {
+			path = file;
+		} else if( typeof(file) == "object" ) {
+			path = file.path;
+		} else {
+			console.log( "Unknown type: " + typeof(file) );
 			return false;
+		}
+		
+		// Only delete things that don't have "/.git/" in them
+		if( typeof(path) == "undefined" || path.indexOf("/.git/") != -1 )
+			return false;
+		else
+			return true;
 	}
 	
+	console.log( "about to remove...hold your breath" );
+	
 	// REMOVE THE DIRECTORY RECURSIVELY (scary, I know)
-	wrench.rmdirRecursive( baseDir, rmDirFilter, callback || callNextStep );
+	wrench.rmdirRecursive( baseDir, rmDirFilter, callback );
 } // end deleteExistingFiles()
 
 
@@ -360,7 +380,7 @@ function getBaseDirFromFilePath( filePath ) {
 function zipDirectory( dir, callback ) {
 	var archive = new zipper();
 	
-	console.log( "Staring to zip" );
+	console.log( "Starting to zip" );
 	console.log( dir );
 
 	// map all files in the approot thru this function
