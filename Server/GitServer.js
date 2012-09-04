@@ -1,7 +1,7 @@
 var port = typeof( process.env.PORT ) == "undefined" ? 5000 : process.env.PORT;
 
 var fs = require("fs");
-var exec = require('child_process').exec
+var exec = require('child_process').exec;
 var wrench = require("wrench");
 var git = require("./GitOperations.js");
 var async = require("async");
@@ -248,8 +248,15 @@ function deleteExistingFiles( callback ) {
 		emitError( "Base directory (" + baseDir + ") is too short, do you really want to delete that :/" );
 	}
 	
+	var rmDirFilter = function( file ) {
+		if( file.name.indexOf(".git") != -1 )
+			return true;
+		else
+			return false;
+	}
+	
 	// REMOVE THE DIRECTORY RECURSIVELY (scary, I know)
-	wrench.rmdirRecursive( baseDir, callback || callNextStep );
+	wrench.rmdirRecursive( baseDir, rmDirFilter, callback || callNextStep );
 } // end deleteExistingFiles()
 
 
