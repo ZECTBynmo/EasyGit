@@ -8,7 +8,7 @@
 -------------------------------------------------------------------------
 	
 */
-
+var exec = require('child_process').exec;
 
 //////////////////////////////////////////////////////////////////////////
 // Push our current state to the server
@@ -42,8 +42,14 @@ exports.pull = function( isRebase, callback ) {
 // Return our local repository state back to the last time we pulled from the server
 exports.checkout = function( filePath, callback ) {	
 	console.log( "Checking out" );
+	var path;
+	if( typeof(filePath) == "undefined" || filePath == null ) {
+		path = ".";
+	} else {
+		path = filePath;
+	}
 
-	var commandString = "git checkout -- " + filePath || "."
+	var commandString = "git checkout -- " + path;
 	
 	exec( commandString, function( error, stdout, stderr ) {
 		console.log('stdout: ' + stdout);
