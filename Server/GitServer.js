@@ -252,7 +252,7 @@ function deleteExistingFiles( callback ) {
 		emitError( "Base directory (" + baseDir + ") is too short, do you really want to delete that :/" );
 	}
 	
-	var rmDirFilter = function( file ) {
+	var rmDirFilter = function( file, cb ) {
 		console.log( file );
 		
 		var path;
