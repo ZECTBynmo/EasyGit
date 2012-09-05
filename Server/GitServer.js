@@ -164,7 +164,12 @@ io.sockets.on('connection', function(socket){
 						deleteExistingFiles( callback );
 					},
 					function( callback ){ 
-						copyIncomingFiles( callback );
+						copyIncomingFiles();
+						callback( null, "Success" );
+					},
+					function( callback ){ 
+						console.log( "Committing files" );
+						git.commit( commitMessage, ".", callback );
 					},
 					function( callback ){ 
 						git.push( callback );
@@ -293,7 +298,7 @@ function copyIncomingFiles( callback ) {
 	// Extract all files 
 	unzip.extractAllTo( baseDir, true );
     
-	if( typeof(callback) != "undefined" ) { callNextStep(); }
+	//if( typeof(callback) != "undefined" ) { callNextStep(); }
 } // end copyIncomingFiles()
 
 
@@ -390,7 +395,7 @@ function zipDirectory( dir, callback ) {
 		// Figure out the base directory for all of these files
 		var baseDir = getFolderName(dir);
 		
-		var afterBaseIndex = path.indexOf(baseDir) /* + baseDir.length + 1*/;
+		var afterBaseIndex = path.indexOf(baseDir) + baseDir.length + 1;
 		
 		var callbackParams = {
 			//name: path.replace(dir, "").substr(1), 

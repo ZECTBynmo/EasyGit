@@ -62,9 +62,11 @@ exports.checkout = function( filePath, callback ) {
 //////////////////////////////////////////////////////////////////////////
 // Push our current state to the server
 exports.commit = function( commitMessage, location, callback ) {	
-	console.log( "Pushing changes to git" );
+	console.log( "Committing changes in " + location );
 	
-	var commandString = 'git commit -m "' + commitMessage + '" -- ' + location;
+	var commandString = 'git commit -m "' + commitMessage + '" ' + location;
+	
+	console.log( commandString );
 
 	exec( commandString, function( error, stdout, stderr ) {
 		console.log('stdout: ' + stdout);
