@@ -136,23 +136,43 @@ io.sockets.on('connection', function(socket){
 			} else {
 				console.log( 'File ' + file.name + " saved" );
 				
+				var currentSHA;
+				
 				// Run our git operations asynchronously
 				async.series([
+					function( callback ) { 
+						socket.emit( "getSHA", {} );
+						socket.on( "sendSHA", function( data ) {
+							currentSHA = data.SHA;
+							console.log( data );
+							if( typeof(currentSHA) == "undefined" ) {
+								callback( "Can't get client's SHA", null );
+							} else {
+								callback( null, "Got SHA" );
+							}
+						});
+					},
 					function( callback ){ 
-						git.checkout( null, callback );
+						git.checkout( null, null, callback );
 					},
 					function( callback ){ 
 						git.pull( true, callback );
 					},
 					function( callback ){ 
-						git.branch( "EasyGitBranch", TagOrSHA, callback );
+						var commandString = "git checkout -b EasyGitBranch " + currentSHA;
+						exec( commandString, function( error, stdout, stderr ) {
+							console.log( commandString );
+							console.log('stdout: ' + stdout);
+							console.log('stderr: ' + stderr);
+							callback( null, stdout );
+						});
 					},
 					function( callback ){ 
 						deleteExistingFiles( callback );
 					},
 					function( callback ){ 
 						copyIncomingFiles();
-						callback( null, "Success" );
+						callback( null, "Unzipped folder into place" );
 					},
 					function( callback ){
 						git.commit( commitMessage, ".", callback );
@@ -166,7 +186,18 @@ io.sockets.on('connection', function(socket){
 					function( callback ){ 
 						git.push( callback );
 					},
+					function( callback ){ 
+						var commandString = "git branch -d EasyGitBranch";
+						exec( commandString, function( error, stdout, stderr ) {
+							console.log( commandString );
+							console.log('stdout: ' + stdout);
+							console.log('stderr: ' + stderr);
+							callback( null, stdout );
+						});
+					},
 				], function(err, results){
+					processDone( err );
+						
 					console.log( err || results );
 				});
 			};
@@ -183,6 +214,7 @@ function startProcess() {
 
 
 function processDone() {
+	console.log( "Process Done!" );
 	io.sockets.socket(currentUser).emit( "processDone" );
 	isLocked = false;
 	currentUser = null;
@@ -249,9 +281,7 @@ function deleteExistingFiles( callback ) {
 		emitError( "Base directory (" + baseDir + ") is too short, do you really want to delete that :/" );
 	}
 	
-	var rmDirFilter = function( file, cb ) {
-		console.log( file );
-		
+	var rmDirFilter = function( file, cb ) {		
 		var path;
 		
 		if( typeof(file) == "string" ) {
