@@ -35,7 +35,7 @@ exports.pull = function( isRebase, callback ) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
 		console.log( commandString );
-		callback( stdout );
+		callback( null, stdout );
 	});
 } // end pull()
 
@@ -87,7 +87,7 @@ exports.branch = function( branchName, TagOrSHA, callback ) {
 //////////////////////////////////////////////////////////////////////////
 // Merge the current branch with a specified branch
 exports.merge = function( branchName, callback ) {	
-	console.log( "Committing changes in " + location );
+	console.log( "Committing changes in " + branchName );
 	
 	var commandString = "git merge " + branchName;
 	runCommand( commandString, callback );
@@ -96,18 +96,35 @@ exports.merge = function( branchName, callback ) {
 
 //////////////////////////////////////////////////////////////////////////
 // Returns the current SHA of the local HEAD
-exports.getAsyncSHA = function( callback ) {
-	
+exports.getAsyncSHA = function( callback ) {	
 	var commandString = "git rev-parse --verify HEAD";
-	runCommand( commandString, callback );
-} // end getAsyncSHA()
-
-
-function runCommand( commandString, callback ) {
 	exec( commandString, function( error, stdout, stderr ) {
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
 		console.log( commandString );
 		callback( stdout );
+	});
+} // end getAsyncSHA()
+
+
+//////////////////////////////////////////////////////////////////////////
+// Returns the current SHA of the local HEAD
+exports.getAsyncBranch = function( callback ) {	
+	var commandString = "git branch";
+	exec( commandString, function( error, stdout, stderr ) {
+		console.log('stdout: ' + stdout);
+		console.log('stderr: ' + stderr);
+		console.log( commandString );
+		callback( stdout );
+	});
+} // end getAsyncSHA()
+
+
+function runCommand( commandString, callback ) {
+	exec( commandString, function( error, stdout, stderr ) {
+		console.log( commandString );
+		console.log('stdout: ' + stdout);
+		console.log('stderr: ' + stderr);
+		callback( null, stdout );
 	});
 } // runCommand()
