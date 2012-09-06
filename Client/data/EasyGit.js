@@ -80,10 +80,15 @@ window.on('ready', function(){
 	
 	socket = io.connect('http://localhost:5001');
 	
+	socket.on( "getSHA", function() {
+		console.log( "Server is asking for our current SHA" );
+		socket.emit( "sendSHA", {SHA: currentSHA} );
+	});
+	
 	socket.on( "updateSHA", function( data ) {
 		log( "Got SHA Update: " + data.TagOrSHA );
 		currentSHA = data.TagOrSHA;
-		//writeSHA();
+		writeSHA( currentSHA );
 		
 		socket.emit( "receivedSHA", {} );
 	});
@@ -94,6 +99,14 @@ window.on('ready', function(){
 		$buttons.attr('disabled', true);
 		$info.removeClass('success').addClass('error');
 		$label.text( "Socket error: " + e );
+	});
+	
+	
+	socket.on( 'processDone', function () {
+		console.log("Process done!");
+		$buttons.attr('disabled', false);
+		$info.removeClass('error').addClass('success');
+		$label.text( "Files Committed Successfully!"	);
 	});
 	
 	socket.on( "gitCheckout", function() {
@@ -378,7 +391,7 @@ function getFolderName( fullPath ) {
 // Write a git SHA to a text file
 function writeSHA( currentSHA ) {
 	console.log( "Writing SHA" );
-	var fileName = "./MostRecentSha.dontDeleteMe"
+	var fileName = LOCAL_FOLDER + "MostRecentSha.dontDeleteMe"
 	
 	var fs = require('fs');
 	var stream = fs.createWriteStream( fileName );
@@ -392,7 +405,7 @@ function writeSHA( currentSHA ) {
 //////////////////////////////////////////////////////////////////////////
 // Write a git SHA from disk
 function readSHA() {
-	var fileName = "./MostRecentSha.dontDeleteMe"
+	var fileName = LOCAL_FOLDER + "MostRecentSha.dontDeleteMe"
 
 	try {
 		require('fs').readFile( fileName, 'utf8', function(err, data) {
