@@ -125,6 +125,9 @@ function runCommand( commandString, callback ) {
 		console.log( commandString );
 		console.log('stdout: ' + stdout);
 		console.log('stderr: ' + stderr);
-		callback( null, stdout );
+		
+		var err = stderr.indexOf("fatal") > 0 ? stderr : null;
+		
+		callback( err, stdout );
 	});
 } // runCommand()
