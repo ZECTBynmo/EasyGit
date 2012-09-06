@@ -65,7 +65,6 @@ window.on('ready', function(){
 	log( "Document ready" );
 	
 	var $ = window.$,
-		$folderPath = $('input[name=path]'),
 		$commitComment = $('input[name=comment]'),
 		$info = $('#info-login'),
 		$label = $info.find('span'),
@@ -223,7 +222,7 @@ window.on('ready', function(){
 		}
 	});
 
-	$folderPath.focus();
+	$commitComment.focus();
 
 	var isPulling = false;
 	
@@ -240,7 +239,7 @@ window.on('ready', function(){
 		$buttons.attr('disabled', true);
 		$info.removeClass('error').addClass('success');
 		
-		var path = $folderPath.val();
+		var path = LOCAL_FOLDER;
 		var commitComment = $commitComment.val();
 		
 		// Verify the directory we're going to upload
