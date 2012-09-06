@@ -14,7 +14,7 @@
 // YourProject/resources/ or something like that.
 // --------------------------------------------------------------
 var GIT_DIRECTORY_TO_MODIFY = "D:/Projects/testrepo";
-var LOCAL_FOLDER = "D:/Projects/secondtestfolder/";
+var LOCAL_FOLDER = "D:\\Projects\\secondtestfolder";
 // --------------------------------------------------------------			
 var currentSHA = readSHA();
 
