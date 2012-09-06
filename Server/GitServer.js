@@ -15,6 +15,7 @@ var unzip;
 var baseDir;
 var fileName; 
 var fileData;
+var TagOrSHA;
 var isUpdateOnly = false; // Set when we're just looking to update the server to the most recent state of the repo and zip the directory
 
 var isLocked = false;
@@ -64,14 +65,14 @@ io.sockets.on('connection', function(socket){
 		}
 	});
 	
-	socket.on( "requestHEAD", function( data ) {
+	socket.on( "requestHEAD", function( data, SHACallback ) {
 		console.log( "update to HEAD requested" );
 		
 		var deliveryObj= {
 			name: data.fileName,
 			path: getOneFolderUp(data.baseDir) + data.fileName
 		};
-		
+		console.log( data );
 		console.log( deliveryObj );
 		
 		if( isLocked ) {
@@ -82,14 +83,28 @@ io.sockets.on('connection', function(socket){
 			
 			// Run our git operations asynchronously
 			async.series([
-				function( callback ){ 
-					var undefinedVar;
-					git.checkout( undefinedVar, callback );
+				function( callback ) { 
+					git.getAsyncSHA( function( SHA ) {		
+						// Update our global variable
+						TagOrSHA = SHA;		
+						
+						// Update the client with the SHA
+						socket.emit( "updateSHA", {TagOrSHA: SHA} );
+						
+						socket.on( "receivedSHA", function() {
+							callback( null, "Sent SHA to client" );
+						});				
+					});
 				},
-				function( callback ){ 
+				function( callback ) { 
+					var undefinedVar;
+					git.checkout( null, null, callback );
+				},
+				function( callback ) { 
 					git.pull( true, callback );
 				},
-				function( callback ){ 
+				function( callback ) {
+					console.log( "Zipping" );
 					zipDirectory( data.baseDir, function() {
 						console.log( "Zipped directory" );
 						console.log( deliveryObj );
@@ -101,37 +116,7 @@ io.sockets.on('connection', function(socket){
 				},
 			], function(err, results){
 				console.log( err || results );
-			});
-				
-			/*
-			var child = exec('git checkout -- .', function (error, stdout, stderr) {
-				console.log('stdout: ' + stdout);
-				console.log('stderr: ' + stderr);				
-				
-				if( error != null ) {
-					emitError( error );
-				} else {
-					console.log( "pulling" );
-					var child = exec('git pull', function (error, stdout, stderr) {
-						console.log('stdout: ' + stdout);
-						console.log('stderr: ' + stderr);
-						
-						if( error != null ) {
-							emitError( error );
-						} else {
-							console.log( "Zipping " + data.baseDir );
-							zipDirectory( data.baseDir, function() {
-								console.log( "Zipped directory" );
-								console.log( deliveryObj );
-								try { delivery.send( deliveryObj ); } 
-								catch(err) { console.log( err ); }
-							}); // end zip dir
-						} // end pull success
-					}); // end exec git pull
-				} // end checkout success
-			});	// end exec git checkout
-			*/
-			
+			});			
 		} // end if not locked
 	}); // end on request HEAD
   
@@ -154,11 +139,13 @@ io.sockets.on('connection', function(socket){
 				// Run our git operations asynchronously
 				async.series([
 					function( callback ){ 
-						var undefinedVar;
-						git.checkout( undefinedVar, callback );
+						git.checkout( null, callback );
 					},
 					function( callback ){ 
 						git.pull( true, callback );
+					},
+					function( callback ){ 
+						git.branch( "EasyGitBranch", TagOrSHA, callback );
 					},
 					function( callback ){ 
 						deleteExistingFiles( callback );
@@ -167,9 +154,14 @@ io.sockets.on('connection', function(socket){
 						copyIncomingFiles();
 						callback( null, "Success" );
 					},
-					function( callback ){ 
-						console.log( "Committing files" );
+					function( callback ){
 						git.commit( commitMessage, ".", callback );
+					},
+					function( callback ){ 
+						git.checkout( null, "master", callback );
+					},
+					function( callback ){ 
+						git.merge( "EasyGitBranch", callback );
 					},
 					function( callback ){ 
 						git.push( callback );
@@ -179,7 +171,7 @@ io.sockets.on('connection', function(socket){
 				});
 			};
 		});
-	});	
+	});
 }); // end socket on Connection
 
 

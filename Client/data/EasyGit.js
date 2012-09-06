@@ -80,6 +80,14 @@ window.on('ready', function(){
 	
 	socket = io.connect('http://localhost:5001');
 	
+	socket.on( "updateSHA", function( data ) {
+		log( "Got SHA Update: " + data.TagOrSHA );
+		currentSHA = data.TagOrSHA;
+		//writeSHA();
+		
+		socket.emit( "receivedSHA", {} );
+	});
+	
 	socket.on( 'error', function (e) {
 		console.log("error");
 		console.log('System', e ? e : 'A unknown error occurred');
@@ -249,6 +257,7 @@ window.on('ready', function(){
 			fileName: fileName,
 			baseDir: GIT_DIRECTORY_TO_MODIFY
 		};
+		
 		socket.emit( "requestHEAD", data );
 	});
 
@@ -368,14 +377,14 @@ function getFolderName( fullPath ) {
 //////////////////////////////////////////////////////////////////////////
 // Write a git SHA to a text file
 function writeSHA( currentSHA ) {
-	// See whether the file exists already
-	try { stats = fs.lstatSync('./currentSHA.txt'); }
-	catch( e ) { console.log(e); }
+	console.log( "Writing SHA" );
+	var fileName = "./MostRecentSha.dontDeleteMe"
 	
 	var fs = require('fs');
-	var stream = fs.createWriteStream("./currentSHA.txt");
+	var stream = fs.createWriteStream( fileName );
 	stream.once('open', function(fd) {
-	  stream.write( currentSHA ); 
+		console.log( "Writing" );
+		stream.write( currentSHA ); 
 	});
 } // end writeSHA()
 
@@ -383,7 +392,17 @@ function writeSHA( currentSHA ) {
 //////////////////////////////////////////////////////////////////////////
 // Write a git SHA from disk
 function readSHA() {
+	var fileName = "./MostRecentSha.dontDeleteMe"
 
+	try {
+		require('fs').readFile( fileName, 'utf8', function(err, data) {
+			console.log( 'OK: ' + fileName );
+			console.log( data )
+			currentSHA = data;
+		});
+	} catch( err ) {
+		console.log( "Couldn't read SHA: " + err );
+	}
 } // end readSHA()
 
 
@@ -410,5 +429,4 @@ process.addListener("uncaughtException", function (err) {
     console.log("Uncaught exception: " + err);
     console.trace();
 });
-
 */
