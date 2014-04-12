@@ -4,9 +4,7 @@ This is a simple git interface so that non-programmers can change files in git r
 
 ### WARNING! 
 
-Basically, you probably shouldn't use this yet. If you want to help me test it, great, but otherwise stay away. There are almost definitely land mines.
-
-This software does destructive git operations and deletes batch files. I haven't tested it enough to convince myself it's safe for others.
+Basically, you probably shouldn't use this yet. If you want to help me test it, great, but otherwise stay away. There are almost definitely land mines. This software does destructive git operations and deletes batch files. I haven't tested it enough to convince myself it's safe for others.
 
 I take no responsibility for work you lose while using this product! Help me test it in the real world, and we can make sure that doesn't happen.
 
